@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>盤絲洞 Pixel MVP</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f6e7b7;
+      --gold: #f5c04a;
+      --red: #d84a36;
+      --jade: #76d7b4;
+      --night: #081017;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 22% 12%, rgba(245, 192, 74, .09), transparent 24%),
+        radial-gradient(circle at 82% 84%, rgba(118, 215, 180, .08), transparent 28%),
+        linear-gradient(135deg, #071017 0%, #111a22 52%, #1a1018 100%);
+      color: var(--ink);
+      font-family: "Songti SC", "Noto Serif TC", "PMingLiU", Georgia, serif;
+    }
+
+    .shell {
+      min-height: 100%;
+      display: grid;
+      place-items: start center;
+      padding: 16px;
+    }
+
+    .game {
+      width: min(1180px, 100%);
+      display: grid;
+      gap: 10px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(24px, 3vw, 42px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-shadow: 0 3px 0 #5b241b, 0 0 18px rgba(245, 192, 74, .24);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+      font: 900 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .key {
+      min-height: 30px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(246, 231, 183, .24);
+      border-radius: 6px;
+      background: rgba(8, 16, 23, .74);
+      padding: 7px 9px;
+      white-space: nowrap;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      min-height: 360px;
+      aspect-ratio: 16 / 9;
+      border: 1px solid rgba(246, 231, 183, .28);
+      border-radius: 8px;
+      background: #050b10;
+      box-shadow: 0 22px 70px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: crosshair;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(4, 9, 13, .34);
+      pointer-events: none;
+    }
+
+    .panel {
+      width: min(560px, 100%);
+      border: 1px solid rgba(246, 231, 183, .26);
+      border-radius: 8px;
+      background: rgba(6, 13, 18, .9);
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 18px 45px rgba(0,0,0,.52), inset 0 0 36px rgba(118, 215, 180, .08);
+      pointer-events: auto;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      color: var(--gold);
+      font-size: clamp(30px, 4vw, 50px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 0 0 18px;
+      color: rgba(246, 231, 183, .86);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(246, 231, 183, .34);
+      border-radius: 7px;
+      background: linear-gradient(180deg, #f5c04a 0%, #c9792d 100%);
+      color: #24130c;
+      font: 900 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 13px 22px;
+      box-shadow: 0 8px 0 #69271d, 0 18px 28px rgba(0,0,0,.34);
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #69271d, 0 12px 20px rgba(0,0,0,.34);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 10px;
+      }
+
+      .topbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .controls {
+        justify-content: flex-start;
+      }
+
+      .stage {
+        min-height: 260px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="game" aria-label="盤絲洞 Pixel 網頁小遊戲">
+      <div class="topbar">
+        <h1>盤絲洞</h1>
+        <div class="controls" aria-label="操作方式">
+          <span class="key">A/D 或 ←/→ 移動</span>
+          <span class="key">W/↑ 跳</span>
+          <span class="key">R 金箍棒</span>
+          <span class="key">F 閃避</span>
+          <span class="key">V 絕招</span>
+        </div>
+      </div>
+      <div class="stage">
+        <canvas id="game" width="640" height="360"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="panel">
+            <h2 id="overlayTitle">盤絲洞，開戰</h2>
+            <p id="overlayText">Q 版 pixel 版本。R 有完整攻擊動畫和命中判定，F 是閃避無敵幀，V 滿格後放分身絕招。</p>
+            <button id="startButton" type="button">START</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.querySelector("#overlay");
+    const overlayTitle = document.querySelector("#overlayTitle");
+    const overlayText = document.querySelector("#overlayText");
+    const startButton = document.querySelector("#startButton");
+
+    ctx.imageSmoothingEnabled = false;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const groundY = 294;
+    const keys = new Set();
+    const pressed = new Set();
+    const cursor = { x: 360, y: groundY };
+    const rnd = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const backgroundImage = loadImage("assets/pansi-cave-bg-v2.png");
+    const spriteAtlas = loadImage("assets/hires-pixel-sprites.png");
+    const SPR = {
+      idle: [32, 64, 190, 286],
+      run1: [266, 116, 230, 236],
+      run2: [514, 116, 226, 236],
+      jump: [778, 50, 230, 265],
+      attack: [1010, 118, 480, 232],
+      hurt: [36, 405, 210, 254],
+      crouch: [318, 410, 220, 258],
+      special: [552, 360, 280, 300],
+      spin: [810, 386, 270, 260],
+      clone: [1080, 390, 430, 290],
+      spider1: [70, 724, 310, 220],
+      spider2: [390, 722, 305, 220],
+      spiderBig: [690, 655, 350, 265],
+      spiderAtk: [1070, 654, 410, 270],
+    };
+
+    function loadImage(src) {
+      const image = new Image();
+      image.src = src;
+      return image;
+    }
+
+    function updateCursor(event) {
+      const rect = canvas.getBoundingClientRect();
+      cursor.x = clamp((event.clientX - rect.left) * W / rect.width, 0, W);
+      cursor.y = clamp((event.clientY - rect.top) * H / rect.height, 0, H);
+    }
+
+    function faceCursor() {
+      hero.facing = cursor.x < hero.x ? -1 : 1;
+    }
+
+    const state = {
+      running: false,
+      gameOver: false,
+      time: 0,
+      score: 0,
+      wave: 1,
+      spawnTimer: 0,
+      skill: 0,
+      shake: 0,
+      hitStop: 0,
+      particles: [],
+      slashes: [],
+      enemies: [],
+      afterimages: [],
+      clones: [],
+      damageFlash: 0,
+    };
+
+    const hero = {
+      x: 126,
+      y: groundY,
+      vx: 0,
+      vy: 0,
+      w: 26,
+      h: 64,
+      hp: 6,
+      facing: 1,
+      grounded: true,
+      action: "idle",
+      actionTime: 0,
+      attackCooldown: 0,
+      attackHit: false,
+      dodgeCooldown: 0,
+      invuln: 0,
+      hurtTime: 0,
+      anim: 0,
+    };
+
+    function resetGame() {
+      Object.assign(state, {
+        running: true,
+        gameOver: false,
+        time: 0,
+        score: 0,
+        wave: 1,
+        spawnTimer: 2.15,
+        skill: 0,
+        shake: 0,
+        hitStop: 0,
+        particles: [],
+        slashes: [],
+        enemies: [],
+        afterimages: [],
+        clones: [],
+        damageFlash: 0,
+      });
+      Object.assign(hero, {
+        x: 126,
+        y: groundY,
+        vx: 0,
+        vy: 0,
+        hp: 6,
+        facing: 1,
+        grounded: true,
+        action: "idle",
+        actionTime: 0,
+        attackCooldown: 0,
+        attackHit: false,
+        dodgeCooldown: 0,
+        invuln: 0,
+        hurtTime: 0,
+        anim: 0,
+      });
+      overlay.classList.add("hidden");
+    }
+
+    function endGame() {
+      state.running = false;
+      state.gameOver = true;
+      hero.action = "dead";
+      overlayTitle.textContent = "大聖暫退";
+      overlayText.textContent = `最終分數 ${state.score}，撐到第 ${state.wave} 波。R 或 START 再來一場。`;
+      startButton.textContent = "RESTART";
+      overlay.classList.remove("hidden");
+    }
+
+    function setHeroAction(action, duration = 0) {
+      if (hero.action !== action) {
+        hero.action = action;
+        hero.actionTime = 0;
+      }
+      if (duration) hero.actionDuration = duration;
+    }
+
+    function spawnEnemy() {
+      const big = state.wave >= 4 && Math.random() < .18;
+      const fast = !big && Math.random() < Math.min(.32, state.wave * .04);
+      const side = Math.random() < .5 ? -1 : 1;
+      state.enemies.push({
+        x: side < 0 ? -44 : W + 44,
+        y: groundY,
+        vx: side < 0 ? rnd(14, 24) : -rnd(14, 24),
+        w: big ? 62 : 44,
+        h: big ? 40 : 30,
+        hp: big ? 5 : fast ? 2 : 3,
+        maxHp: big ? 5 : fast ? 2 : 3,
+        type: big ? "big" : fast ? "fast" : "small",
+        facing: side < 0 ? 1 : -1,
+        action: "walk",
+        actionTime: 0,
+        attackTimer: rnd(.5, 1.1),
+        attackRest: rnd(.45, 1.1),
+        hurtTime: 0,
+        deadTime: 0,
+        hitOnce: false,
+        animSeed: rnd(0, 10),
+      });
+    }
+
+    function heroBasicAttack() {
+      if (!state.running || hero.attackCooldown > 0 || hero.action === "hurt" || hero.action === "dodge") return;
+      setHeroAction("basic", .28);
+      hero.actionTime = 0;
+      hero.attackCooldown = .24;
+      hero.attackHit = false;
+      hero.vx *= .45;
+      addSlash(hero.x + hero.facing * 40, hero.y - 34, hero.facing, "basic");
+    }
+
+    function heroStaffSkill() {
+      if (!state.running || hero.attackCooldown > 0 || hero.action === "hurt" || hero.action === "dodge") return;
+      setHeroAction("staffSkill", .52);
+      hero.actionTime = 0;
+      hero.attackCooldown = .82;
+      hero.attackHit = false;
+      hero.vx *= .15;
+      addSlash(hero.x + hero.facing * 42, hero.y - 42, hero.facing, "staffCharge");
+      burst(hero.x + hero.facing * 22, hero.y - 44, 10, "#f5c04a", 55);
+    }
+
+    function heroDodge() {
+      if (!state.running || hero.dodgeCooldown > 0 || hero.action === "hurt") return;
+      setHeroAction("dodge", .28);
+      hero.actionTime = 0;
+      hero.dodgeCooldown = .9;
+      hero.invuln = .42;
+      hero.vx = hero.facing * 390;
+      hero.x = clamp(hero.x + hero.facing * 24, 22, W - 22);
+      state.afterimages.push({ x: hero.x - hero.facing * 28, y: hero.y, facing: hero.facing, life: .28, action: "dodge" });
+      burst(hero.x - hero.facing * 16, hero.y - 18, 9, "#d9f7ff", 70);
+    }
+
+    function heroSpecial() {
+      if (!state.running || state.skill < 100 || hero.action === "hurt" || hero.action === "dodge") return;
+      state.skill = 0;
+      setHeroAction("special", .72);
+      hero.actionTime = 0;
+      hero.invuln = .85;
+      state.shake = .36;
+      state.hitStop = .04;
+      for (let i = 0; i < 5; i++) {
+        state.clones.push({
+          x: 110 + i * 104,
+          y: groundY,
+          facing: i % 2 === 0 ? 1 : -1,
+          life: .58,
+          delay: i * .045,
+          fired: false,
+        });
+      }
+      state.enemies.forEach((enemy) => damageEnemy(enemy, enemy.type === "big" ? 4 : 5, 120));
+      for (let i = 0; i < 42; i++) burst(rnd(70, W - 70), rnd(110, groundY - 20), 1, i % 2 ? "#f5c04a" : "#76d7b4", 110);
+    }
+
+    function addSlash(x, y, facing, type) {
+      const life = type === "staff" ? .62 : type === "staffCharge" ? .24 : type === "basic" ? .18 : type === "attack" ? .22 : .38;
+      state.slashes.push({
+        x,
+        y,
+        facing,
+        type,
+        life,
+        maxLife: life,
+      });
+    }
+
+    function damageEnemy(enemy, amount, knock = 70) {
+      if (enemy.action === "dead") return;
+      enemy.hp -= amount;
+      enemy.hurtTime = .22;
+      enemy.action = enemy.hp <= 0 ? "dead" : "hurt";
+      enemy.actionTime = 0;
+      enemy.vx = Math.sign(enemy.x - hero.x || 1) * knock;
+      state.score += 30 * amount;
+      state.skill = clamp(state.skill + 9 * amount, 0, 100);
+      state.hitStop = Math.max(state.hitStop, .035);
+      state.shake = Math.max(state.shake, .08);
+      burst(enemy.x, enemy.y - enemy.h * .55, enemy.type === "big" ? 18 : 11, enemy.type === "big" ? "#d84a36" : "#9b6cff", 92);
+      if (enemy.hp <= 0) {
+        enemy.deadTime = .45;
+        state.score += enemy.maxHp * 80;
+        burst(enemy.x, enemy.y - 10, 22, "#f5c04a", 130);
+      }
+    }
+
+    function hurtHero(fromX) {
+      if (hero.invuln > 0 || hero.action === "dead") return;
+      hero.hp -= 1;
+      hero.invuln = 1.35;
+      hero.hurtTime = .34;
+      hero.vx = Math.sign(hero.x - fromX || 1) * 190;
+      hero.vy = -120;
+      setHeroAction("hurt", .34);
+      state.damageFlash = .16;
+      state.shake = .22;
+      burst(hero.x, hero.y - 28, 14, "#d84a36", 105);
+      if (hero.hp <= 0) endGame();
+    }
+
+    function burst(x, y, count, color, speed) {
+      for (let i = 0; i < count; i++) {
+        const a = rnd(-Math.PI, Math.PI);
+        const s = rnd(speed * .25, speed);
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s - rnd(20, 90),
+          size: rnd(1.8, 4.8),
+          color,
+          life: rnd(.18, .58),
+          maxLife: .58,
+        });
+      }
+    }
+
+    function update(dt) {
+      if (!state.running) return;
+      if (state.hitStop > 0) {
+        state.hitStop -= dt;
+        return;
+      }
+
+      state.time += dt;
+      state.wave = 1 + Math.floor(state.time / 18);
+      state.spawnTimer -= dt;
+      state.shake = Math.max(0, state.shake - dt);
+      state.damageFlash = Math.max(0, state.damageFlash - dt);
+      hero.attackCooldown = Math.max(0, hero.attackCooldown - dt);
+      hero.dodgeCooldown = Math.max(0, hero.dodgeCooldown - dt);
+      hero.invuln = Math.max(0, hero.invuln - dt);
+      hero.hurtTime = Math.max(0, hero.hurtTime - dt);
+      hero.actionTime += dt;
+      hero.anim += dt;
+
+      if (pressed.has("r")) heroStaffSkill();
+      if (pressed.has("f")) heroDodge();
+      if (pressed.has("v")) heroSpecial();
+
+      updateHero(dt);
+      updateEnemies(dt);
+      updateEffects(dt);
+      pressed.clear();
+    }
+
+    function updateHero(dt) {
+      const left = keys.has("a") || keys.has("ArrowLeft");
+      const right = keys.has("d") || keys.has("ArrowRight");
+      const jump = pressed.has("w") || pressed.has("ArrowUp") || pressed.has(" ");
+      const locked = hero.action === "basic" || hero.action === "staffSkill" || hero.action === "special" || hero.action === "hurt" || hero.action === "dodge";
+
+      if (!locked) {
+        if (left) {
+          hero.vx -= 780 * dt;
+          hero.facing = -1;
+        }
+        if (right) {
+          hero.vx += 780 * dt;
+          hero.facing = 1;
+        }
+        if (!left && !right && hero.grounded) hero.vx *= Math.pow(.0006, dt);
+      }
+
+      if (jump && hero.grounded && hero.action !== "hurt") {
+        hero.vy = -445;
+        hero.grounded = false;
+        burst(hero.x, hero.y - 4, 8, "#76d7b4", 62);
+      }
+
+      const max = hero.action === "dodge" ? 430 : 154;
+      hero.vx = clamp(hero.vx, -max, max);
+      hero.vy += 980 * dt;
+      hero.x += hero.vx * dt;
+      hero.y += hero.vy * dt;
+      hero.x = clamp(hero.x, 20, W - 20);
+
+      if (hero.y >= groundY) {
+        hero.y = groundY;
+        hero.vy = 0;
+        hero.grounded = true;
+      } else {
+        hero.grounded = false;
+      }
+
+      if (hero.action === "basic" && !hero.attackHit && hero.actionTime > .08) {
+        hero.attackHit = true;
+        const hitX = hero.x + hero.facing * 42;
+        addSlash(hitX, hero.y - 30, hero.facing, "basicHit");
+        state.enemies.forEach((enemy) => {
+          const inFront = hero.facing > 0 ? enemy.x > hero.x - 8 : enemy.x < hero.x + 8;
+          if (inFront && Math.abs(enemy.x - hitX) < 48 && Math.abs(enemy.y - hero.y) < 48) {
+            damageEnemy(enemy, 1, 86);
+          }
+        });
+      }
+
+      if (hero.action === "staffSkill" && !hero.attackHit && hero.actionTime > .16) {
+        hero.attackHit = true;
+        const hitX = hero.x + hero.facing * 118;
+        addSlash(hitX, hero.y - 34, hero.facing, "staff");
+        state.shake = Math.max(state.shake, .12);
+        state.enemies.forEach((enemy) => {
+          const inFront = hero.facing > 0 ? enemy.x > hero.x - 4 : enemy.x < hero.x + 4;
+          if (inFront && Math.abs(enemy.x - hitX) < 140 && Math.abs(enemy.y - hero.y) < 62) {
+            damageEnemy(enemy, enemy.type === "big" ? 3 : 4, 230);
+          }
+        });
+      }
+
+      if (hero.action === "basic" && hero.actionTime >= .28) setHeroAction("idle");
+      if (hero.action === "staffSkill" && hero.actionTime >= .52) setHeroAction("idle");
+      if (hero.action === "dodge" && hero.actionTime >= .28) setHeroAction("idle");
+      if (hero.action === "special" && hero.actionTime >= .72) setHeroAction("idle");
+      if (hero.action === "hurt" && hero.actionTime >= .34) setHeroAction("idle");
+
+      if (!["basic", "staffSkill", "dodge", "special", "hurt", "dead"].includes(hero.action)) {
+        if (!hero.grounded) setHeroAction(hero.vy < 0 ? "jump" : "fall");
+        else if (Math.abs(hero.vx) > 24) setHeroAction("run");
+        else setHeroAction("idle");
+      }
+    }
+
+    function updateEnemies(dt) {
+      if (state.spawnTimer <= 0) {
+        if (state.enemies.filter((enemy) => enemy.action !== "dead").length < 3 + Math.floor(state.wave / 4)) {
+          spawnEnemy();
+        }
+        state.spawnTimer = Math.max(1.05, 3.05 - state.wave * .11) * rnd(.85, 1.3);
+      }
+
+      state.enemies.forEach((enemy) => {
+        enemy.actionTime += dt;
+        enemy.hurtTime = Math.max(0, enemy.hurtTime - dt);
+
+        if (enemy.action === "dead") {
+          enemy.deadTime -= dt;
+          enemy.vx *= Math.pow(.03, dt);
+          enemy.x += enemy.vx * dt;
+          return;
+        }
+
+        const dist = hero.x - enemy.x;
+        enemy.facing = dist >= 0 ? 1 : -1;
+        enemy.attackRest = Math.max(0, enemy.attackRest - dt);
+
+        if (enemy.action === "hurt") {
+          enemy.x += enemy.vx * dt;
+          enemy.vx *= Math.pow(.05, dt);
+          if (enemy.hurtTime <= 0) {
+            enemy.action = "walk";
+            enemy.actionTime = 0;
+          }
+          return;
+        }
+
+        const reach = enemy.type === "big" ? 42 : 31;
+        if (Math.abs(dist) < reach && Math.abs(hero.y - enemy.y) < 42 && enemy.attackRest <= 0) {
+          if (enemy.action !== "attack") {
+            enemy.action = "attack";
+            enemy.actionTime = 0;
+            enemy.hitOnce = false;
+            enemy.vx = 0;
+          }
+        } else if (enemy.action !== "attack") {
+          enemy.action = "walk";
+          const speed = enemy.type === "fast" ? 56 : enemy.type === "big" ? 34 : 44;
+          enemy.vx += Math.sign(dist) * speed * 2.8 * dt;
+          enemy.vx = clamp(enemy.vx, -speed, speed);
+          enemy.x += enemy.vx * dt;
+        }
+
+        if (enemy.action === "attack") {
+          const windup = enemy.type === "big" ? .26 : .2;
+          const end = enemy.type === "big" ? .58 : .46;
+          if (!enemy.hitOnce && enemy.actionTime > windup) {
+            enemy.hitOnce = true;
+            enemy.x += enemy.facing * (enemy.type === "big" ? 18 : 12);
+            if (Math.abs(hero.x - enemy.x) < reach + 12 && Math.abs(hero.y - enemy.y) < 42) hurtHero(enemy.x);
+          }
+          if (enemy.actionTime > end) {
+            enemy.action = "walk";
+            enemy.actionTime = 0;
+            enemy.attackRest = enemy.type === "big" ? 1.55 : 1.25;
+          }
+        }
+      });
+
+      state.enemies = state.enemies.filter((enemy) => enemy.deadTime > 0 || enemy.action !== "dead");
+    }
+
+    function updateEffects(dt) {
+      state.particles.forEach((p) => {
+        p.life -= dt;
+        p.vy += 280 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      });
+      state.particles = state.particles.filter((p) => p.life > 0);
+
+      state.slashes.forEach((s) => s.life -= dt);
+      state.slashes = state.slashes.filter((s) => s.life > 0);
+
+      state.afterimages.forEach((a) => a.life -= dt);
+      state.afterimages = state.afterimages.filter((a) => a.life > 0);
+
+      state.clones.forEach((c) => {
+        c.delay -= dt;
+        if (c.delay <= 0 && !c.fired) {
+          c.fired = true;
+          addSlash(c.x + c.facing * 42, c.y - 28, c.facing, "hit");
+        }
+        if (c.delay <= 0) c.life -= dt;
+      });
+      state.clones = state.clones.filter((c) => c.life > 0 || c.delay > 0);
+    }
+
+    function px(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
+
+    function drawBackground(t) {
+      if (backgroundImage.complete && backgroundImage.naturalWidth) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(backgroundImage, 0, 0, W, H);
+        ctx.imageSmoothingEnabled = false;
+      } else {
+        ctx.fillStyle = "#0c2532";
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.fillStyle = "rgba(4, 9, 13, .2)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "rgba(246, 231, 183, .22)";
+      ctx.fillRect(0, groundY + 1, W, 2);
+      ctx.fillStyle = "rgba(0, 0, 0, .18)";
+      ctx.fillRect(0, groundY + 5, W, H - groundY);
+    }
+
+    function drawHeroSprite(x, y, facing, action, time, alpha = 1) {
+      ctx.save();
+      ctx.translate(Math.round(x), Math.round(y));
+      const spriteFacing = action === "basic" ? -facing : facing;
+      ctx.scale(spriteFacing, 1);
+      ctx.globalAlpha = alpha;
+      const phase = Math.floor(time * 10) % 2;
+      let sprite = SPR.idle;
+      let dw = 100;
+      let dh = 142;
+      let dx = -50;
+      let dy = -138;
+      if (action === "run") {
+        sprite = phase ? SPR.run2 : SPR.run1;
+        dw = 122;
+        dh = 122;
+        dx = -60;
+        dy = -120;
+      } else if (action === "jump" || action === "fall") {
+        sprite = SPR.jump;
+        dw = 116;
+        dh = 136;
+        dx = -56;
+        dy = -140;
+      } else if (action === "basic") {
+        sprite = SPR.spin;
+        dw = 116;
+        dh = 112;
+        dx = -54;
+        dy = -112;
+      } else if (action === "staffSkill") {
+        sprite = SPR.attack;
+        dw = 222;
+        dh = 108;
+        dx = -68;
+        dy = -108;
+      } else if (action === "hurt") {
+        sprite = SPR.hurt;
+        dw = 108;
+        dh = 130;
+        dx = -55;
+        dy = -128;
+      } else if (action === "dodge") {
+        sprite = SPR.run2;
+        dw = 128;
+        dh = 112;
+        dx = -66;
+        dy = -110;
+        ctx.globalAlpha = alpha * .72;
+        px(-52, -52, 110, 20, "rgba(118, 215, 180, .24)");
+      } else if (action === "special") {
+        sprite = time % .22 < .11 ? SPR.special : SPR.spin;
+        dw = 142;
+        dh = 150;
+        dx = -70;
+        dy = -148;
+      } else if (action === "dead") {
+        sprite = SPR.crouch;
+        dw = 112;
+        dh = 104;
+        dx = -55;
+        dy = -102;
+      }
+      if (spriteAtlas.complete && spriteAtlas.naturalWidth) {
+        ctx.drawImage(spriteAtlas, sprite[0], sprite[1], sprite[2], sprite[3], dx, dy, dw, dh);
+      } else {
+        px(-18, -64, 36, 62, "#b93730");
+      }
+
+      if (action === "staffSkill" && time > .12) {
+        const p = clamp((time - .12) / .16, 0, 1);
+        ctx.globalAlpha = alpha * (1 - clamp((time - .28) / .24, 0, .65));
+        px(34, -47, 265 + p * 46, 18, "rgba(255, 243, 167, .78)");
+        px(34, -41, 292 + p * 54, 5, "#f5c04a");
+        px(310 + p * 52, -58, 30, 38, "rgba(245, 192, 74, .74)");
+        px(334 + p * 60, -50, 18, 22, "#fff3a7");
+        ctx.strokeStyle = "rgba(255, 243, 167, .38)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(34, -62);
+        ctx.lineTo(360 + p * 48, -62);
+        ctx.moveTo(34, -22);
+        ctx.lineTo(360 + p * 48, -22);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawSpider(enemy) {
+      ctx.save();
+      ctx.translate(Math.round(enemy.x), Math.round(enemy.y));
+      ctx.scale(enemy.facing, 1);
+      const big = enemy.type === "big";
+      const phase = Math.floor((enemy.actionTime + enemy.animSeed) * 8) % 2;
+      let sprite = big ? SPR.spiderBig : (phase ? SPR.spider2 : SPR.spider1);
+      if (enemy.action === "attack") sprite = SPR.spiderAtk;
+      let dw = big ? 122 : 92;
+      let dh = big ? 80 : 62;
+      if (enemy.action === "attack") {
+        dw = big ? 138 : 106;
+        dh = big ? 88 : 70;
+      }
+      const sink = enemy.action === "dead" ? enemy.actionTime * 12 : 0;
+      const hurt = enemy.action === "hurt" ? Math.sin(enemy.actionTime * 60) * 3 : 0;
+      ctx.globalAlpha = enemy.action === "dead" ? clamp(enemy.deadTime / .45, 0, 1) : 1;
+      if (spriteAtlas.complete && spriteAtlas.naturalWidth) {
+        ctx.drawImage(spriteAtlas, sprite[0], sprite[1], sprite[2], sprite[3], -dw / 2 + hurt, -dh + sink, dw, dh);
+      } else {
+        px(-22, -28, 44, 24, "#3d235c");
+      }
+      ctx.restore();
+    }
+
+    function drawEffects() {
+      state.afterimages.forEach((a) => drawHeroSprite(a.x, a.y, a.facing, a.action, hero.anim, a.life * 2.5));
+      state.clones.forEach((c) => {
+        if (c.delay > 0) return;
+        drawHeroSprite(c.x, c.y, c.facing, "staffSkill", .18, c.life * 1.6);
+      });
+
+      state.slashes.forEach((s) => {
+        const p = 1 - s.life / s.maxLife;
+        ctx.save();
+        ctx.globalAlpha = clamp(s.life / s.maxLife, 0, 1);
+        ctx.translate(s.x, s.y);
+        if (s.type === "basic" || s.type === "basicHit") {
+          const r = 28 + p * 16;
+          const dir = s.facing;
+          ctx.strokeStyle = s.type === "basicHit" ? "#fff3a7" : "#f5c04a";
+          ctx.lineWidth = s.type === "basicHit" ? 6 : 4;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-dir * 18, -24);
+          ctx.quadraticCurveTo(dir * r, -28 + p * 8, dir * (r + 10), 16);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(245, 192, 74, .42)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-dir * 10, -12);
+          ctx.quadraticCurveTo(dir * (r - 4), -8, dir * (r + 16), 25);
+          ctx.stroke();
+          if (s.type === "basicHit") {
+            const sparkX = dir > 0 ? r + 8 : -r - 22;
+            px(sparkX, -4, 14, 8, "rgba(255, 243, 167, .72)");
+          }
+        } else {
+          ctx.scale(s.facing, 1);
+        if (s.type === "staffCharge") {
+          px(-18, -18, 36, 36, "rgba(245, 192, 74, .28)");
+          px(-10, -10, 20, 20, "rgba(255, 243, 167, .72)");
+          px(10 + p * 18, -3, 50, 6, "rgba(245, 192, 74, .65)");
+        } else if (s.type === "staff") {
+          px(-112, -6, 240, 12, "rgba(255, 243, 167, .86)");
+          px(-112, -2, 240, 4, "#f5c04a");
+          px(95 + p * 28, -18, 38, 36, "rgba(245, 192, 74, .76)");
+          px(128 + p * 30, -8, 20, 16, "#fff3a7");
+          ctx.strokeStyle = "rgba(255, 243, 167, .42)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-112, -18);
+          ctx.lineTo(148 + p * 30, -18);
+          ctx.moveTo(-112, 18);
+          ctx.lineTo(148 + p * 30, 18);
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = s.type === "attack" ? "#f5c04a" : "#fff3a7";
+          ctx.lineWidth = s.type === "attack" ? 5 : 7;
+          ctx.beginPath();
+          ctx.arc(0, 0, 21 + p * 14, -1.1, .85);
+          ctx.stroke();
+          px(18 + p * 18, -3, 14, 6, "rgba(255, 243, 167, .72)");
+        }
+        }
+        ctx.restore();
+      });
+
+      state.particles.forEach((p) => {
+        ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+        px(p.x, p.y, p.size, p.size, p.color);
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawHud() {
+      ctx.save();
+      ctx.font = "9px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx.textBaseline = "middle";
+      hudPill(10, 9, 84, `HP ${"♥".repeat(hero.hp)}`);
+      hudPill(W / 2 - 42, 9, 84, `SCORE ${state.score}`);
+      hudPill(W - 210, 9, 96, state.skill >= 100 ? "V READY" : `V ${Math.floor(state.skill)}%`);
+      hudPill(W - 82, 9, 72, `WAVE ${state.wave}`);
+
+      px(W - 210, 25, 96, 5, "rgba(246, 231, 183, .18)");
+      px(W - 209, 26, 94 * state.skill / 100, 3, state.skill >= 100 ? "#f5c04a" : "#76d7b4");
+      ctx.restore();
+    }
+
+    function hudPill(x, y, w, text) {
+      px(x, y, w, 18, "rgba(5, 11, 16, .82)");
+      ctx.strokeStyle = "rgba(246, 231, 183, .23)";
+      ctx.strokeRect(x + .5, y + .5, w, 18);
+      ctx.fillStyle = "#f6e7b7";
+      ctx.fillText(text, x + 7, y + 9);
+    }
+
+    function render() {
+      ctx.save();
+      if (state.shake > 0) ctx.translate(Math.round(rnd(-5, 5) * state.shake * 4), Math.round(rnd(-4, 4) * state.shake * 4));
+      drawBackground(state.time);
+      state.enemies.sort((a, b) => a.y - b.y).forEach(drawSpider);
+      const blink = hero.invuln > 0 && Math.floor(hero.invuln * 18) % 2 === 0;
+      drawHeroSprite(hero.x, hero.y, hero.facing, hero.action, hero.actionTime + hero.anim, blink ? .58 : 1);
+      drawEffects();
+      drawHud();
+      if (state.damageFlash > 0) {
+        ctx.fillStyle = `rgba(216, 74, 54, ${state.damageFlash * 2.1})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(.033, (now - last) / 1000);
+      last = now;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", " "].includes(event.key)) event.preventDefault();
+      if (!keys.has(key)) pressed.add(key);
+      keys.add(key);
+      if (!state.running && (key === "r" || key === "enter")) resetGame();
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      keys.delete(key);
+    });
+
+    canvas.addEventListener("pointermove", updateCursor);
+
+    canvas.addEventListener("pointerdown", (event) => {
+      updateCursor(event);
+      if (!state.running) resetGame();
+      else {
+        faceCursor();
+        heroBasicAttack();
+      }
+    });
+
+    startButton.addEventListener("click", resetGame);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

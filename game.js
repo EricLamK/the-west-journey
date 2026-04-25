@@ -16,6 +16,10 @@ const MP_REGEN = 9;
 const MP_COST_R = 28;
 const MP_COST_F = 20;
 const SP_COST_V = 100;
+const HERO_DRAW_SCALE = .78;
+const ENEMY_DRAW_SCALE = .6;
+const BOSS_DRAW_SCALE = .72;
+const HEALTH_DROP_HEAL = 24;
 const ENEMY_CELL_W = 192;
 const ENEMY_CELL_H = 160;
 const keys = new Set();
@@ -34,6 +38,7 @@ function loadImage(src) {
 const heroAtlas = loadImage("assets/hires-pixel-sprites.png");
 const hudFrame = loadImage("assets/ui/hud-bars.png");
 const skillEffects = loadImage("assets/effects/skill-upgrades.png");
+const healthPotionImage = loadImage("assets/items/health-potion.png");
 
 const HERO_SPRITES = {
   idle: [32, 64, 190, 286],
@@ -163,6 +168,7 @@ const state = {
   damageFlash: 0,
   enemies: [],
   hazards: [],
+  items: [],
   particles: [],
   slashes: [],
   afterimages: [],
@@ -243,6 +249,7 @@ function resetGame() {
     damageFlash: 0,
     enemies: [],
     hazards: [],
+    items: [],
     particles: [],
     slashes: [],
     afterimages: [],
@@ -287,6 +294,7 @@ function setupLevel(index) {
   state.levelClearTimer = 0;
   state.enemies = [];
   state.hazards = [];
+  state.items = [];
   state.slashes = [];
   state.clones = [];
   state.afterimages = [];
@@ -521,6 +529,7 @@ function damageEnemy(enemy, amount, knock = 70) {
     state.score += Math.round(enemy.maxHp * (enemy.boss ? 60 : 70));
     if (!enemy.boss) {
       grantSp(enemy.spGain);
+      maybeDropHealth(enemy);
       if (!state.bossActive) state.waveKills += 1;
     }
     burst(enemy.x, enemy.y - 10, enemy.boss ? 42 : 22, "#f5c04a", enemy.boss ? 180 : 130);
@@ -540,6 +549,53 @@ function hurtHero(fromX, amount = 10, knock = 190) {
   state.shake = .22;
   burst(hero.x, hero.y - 28, 14, "#d84a36", 105);
   if (hero.hp <= 0) endGame();
+}
+
+function maybeDropHealth(enemy) {
+  if (hero.hp >= hero.maxHp) return;
+  const baseChance = enemy.row === 1 ? .24 : .16;
+  const lowHpBonus = hero.hp <= hero.maxHp * .35 ? .12 : 0;
+  const summonedPenalty = enemy.summoned ? -.06 : 0;
+  if (Math.random() > baseChance + lowHpBonus + summonedPenalty) return;
+  spawnHealthPotion(enemy.x, enemy.y - enemy.h * .55);
+}
+
+function spawnHealthPotion(x, y) {
+  state.items.push({
+    type: "healthPotion",
+    x,
+    y,
+    vx: rnd(-34, 34),
+    vy: rnd(-185, -130),
+    life: 11,
+    maxLife: 11,
+    bob: rnd(0, Math.PI * 2),
+    picked: false,
+  });
+}
+
+function updateItems(dt) {
+  state.items.forEach((item) => {
+    item.life -= dt;
+    item.bob += dt * 6;
+    item.vy += 620 * dt;
+    item.x = clamp(item.x + item.vx * dt, 26, currentWorldWidth() - 26);
+    item.y += item.vy * dt;
+    if (item.y >= GROUND_Y - 18) {
+      item.y = GROUND_Y - 18;
+      item.vy *= -.24;
+      item.vx *= Math.pow(.12, dt);
+      if (Math.abs(item.vy) < 28) item.vy = 0;
+    }
+    const canHeal = hero.hp < hero.maxHp && hero.action !== "dead";
+    if (canHeal && Math.abs(hero.x - item.x) < 30 && Math.abs(hero.y - item.y) < 58) {
+      hero.hp = clamp(hero.hp + HEALTH_DROP_HEAL, 0, hero.maxHp);
+      item.picked = true;
+      showNotice(`HP +${HEALTH_DROP_HEAL}`, .75);
+      burst(item.x, item.y - 8, 18, "#76d7b4", 92);
+    }
+  });
+  state.items = state.items.filter((item) => item.life > 0 && !item.picked);
 }
 
 function burst(x, y, count, color, speed) {
@@ -589,6 +645,7 @@ function update(dt) {
   updateWave(dt);
   updateEnemies(dt);
   updateHazards(dt);
+  updateItems(dt);
   updateEffects(dt);
   updateCamera(dt);
   pressed.clear();
@@ -1014,6 +1071,7 @@ function drawBackground() {
 function drawWorld() {
   drawHazards();
   state.enemies.sort((a, b) => a.y - b.y).forEach(drawEnemy);
+  drawItems();
   state.afterimages.forEach((a) => drawHeroSprite(a.x, a.y, a.facing, a.action, hero.anim, a.life * 2.3, a.rank));
   const blink = hero.invuln > 0 && Math.floor(hero.invuln * 18) % 2 === 0;
   drawHeroSprite(hero.x, hero.y, hero.facing, hero.action, hero.actionTime + hero.anim, blink ? .58 : 1, getHeroActionRank());
@@ -1095,6 +1153,10 @@ function drawHeroSprite(x, y, facing, action, time, alpha = 1, rank = 0) {
     dx = -55;
     dy = -102;
   }
+  dw *= HERO_DRAW_SCALE;
+  dh *= HERO_DRAW_SCALE;
+  dx *= HERO_DRAW_SCALE;
+  dy *= HERO_DRAW_SCALE;
   if (heroAtlas.complete && heroAtlas.naturalWidth) {
     ctx.drawImage(heroAtlas, sprite[0], sprite[1], sprite[2], sprite[3], dx, dy, dw, dh);
   } else {
@@ -1135,7 +1197,7 @@ function drawEnemy(enemy) {
   if (enemy.action === "special") col = 6;
   const sx = col * ENEMY_CELL_W;
   const sy = enemy.row * ENEMY_CELL_H;
-  const spriteScale = enemy.boss ? .98 : .96;
+  const spriteScale = enemy.boss ? BOSS_DRAW_SCALE : ENEMY_DRAW_SCALE;
   const dw = ENEMY_CELL_W * enemy.scale * spriteScale;
   const dh = ENEMY_CELL_H * enemy.scale * spriteScale;
   const sink = enemy.action === "dead" ? enemy.actionTime * 16 : 0;
@@ -1214,6 +1276,33 @@ function drawHazards() {
       ctx.moveTo(-h.w / 2, 0);
       ctx.lineTo(h.w / 2, 0);
       ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function drawItems() {
+  state.items.forEach((item) => {
+    const alpha = clamp(Math.min(item.life, 1), 0, 1);
+    const bob = Math.sin(item.bob) * 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(Math.round(item.x), Math.round(item.y + bob));
+    ctx.fillStyle = "rgba(0, 0, 0, .32)";
+    ctx.beginPath();
+    ctx.ellipse(0, 18 - bob, 18, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(118, 215, 180, .48)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -7, 20 + Math.sin(item.bob * 1.4) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+    if (healthPotionImage.complete && healthPotionImage.naturalWidth) {
+      ctx.drawImage(healthPotionImage, -18, -42, 36, 36);
+    } else {
+      px(-9, -34, 18, 28, "#d84a36");
+      px(-5, -24, 10, 4, "#fff3a7");
+      px(-2, -28, 4, 12, "#fff3a7");
     }
     ctx.restore();
   });

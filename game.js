@@ -59,15 +59,15 @@ const HERO_FX_SPRITES = {
 };
 
 const HERO_SPRITES = {
-  idle: [32, 64, 190, 286],
-  run1: [266, 116, 230, 236],
-  run2: [514, 116, 226, 236],
-  jump: [778, 50, 230, 265],
-  attack: [1010, 118, 480, 232],
-  hurt: [36, 405, 210, 254],
-  crouch: [318, 410, 220, 258],
-  special: [552, 360, 280, 300],
-  spin: [810, 386, 270, 260],
+  idle:    [40, 107, 173, 251],
+  run1:    [272, 134, 258, 202],
+  run2:    [546, 135, 238, 209],
+  jump:    [789, 61, 203, 243],
+  attack:  [1002, 151, 487, 207],
+  hurt:    [25, 437, 191, 225],
+  crouch:  [237, 471, 246, 191],
+  special: [521, 399, 247, 265],
+  spin:    [791, 415, 307, 220],
 };
 
 const LEVELS = [
@@ -961,9 +961,9 @@ function performEnemyAttack(enemy) {
   } else if (enemy.pattern === "web") {
     addHazard("web", enemy.x + f * 34, enemy.y - 42, f * 190, 0, 34, 18, 1.7, damage, "#d9f7ff");
   } else if (enemy.pattern === "bone") {
-    addHazard("spike", hero.x, GROUND_Y - 18, 0, 0, 42, 50, .82, damage, "#f6e7b7", .32);
+    addHazard("bone", hero.x, GROUND_Y - 18, 0, 0, 56, 56, .82, damage, "#f6e7b7", .32);
   } else if (enemy.pattern === "boneLine") {
-    for (let i = 0; i < 3; i++) addHazard("spike", hero.x + f * i * 52, GROUND_Y - 18, 0, 0, 42, 54, .9, damage, "#f6e7b7", .2 + i * .1);
+    for (let i = 0; i < 3; i++) addHazard("boneLine", hero.x + f * i * 52, GROUND_Y - 18, 0, 0, 64, 56, .9, damage, "#f6e7b7", .2 + i * .1);
   } else if (enemy.pattern === "gust") {
     addHazard("gust", enemy.x + f * 42, enemy.y - 42, f * 240, 0, 62, 42, 1.25, damage, "#f5c04a");
   } else if (enemy.pattern === "tornado") {
@@ -1115,62 +1115,62 @@ function drawHeroSprite(x, y, facing, action, time, alpha = 1, rank = 0) {
   const spriteFacing = action === "basic" ? -facing : facing;
   ctx.scale(spriteFacing, 1);
   ctx.globalAlpha = alpha;
-  const phase = Math.floor(time * 10) % 2;
+  const phase = Math.floor(time * 7) % 2;
   let sprite = HERO_SPRITES.idle;
-  let dw = 100;
+  let dw = 98;
   let dh = 142;
-  let dx = -50;
-  let dy = -138;
+  let dx = -49;
+  let dy = -142;
   if (action === "run") {
     sprite = phase ? HERO_SPRITES.run2 : HERO_SPRITES.run1;
-    dw = 122;
+    dw = 148;
     dh = 122;
-    dx = -60;
-    dy = -120;
+    dx = -74;
+    dy = -122;
   } else if (action === "jump" || action === "fall") {
     sprite = HERO_SPRITES.jump;
-    dw = 116;
+    dw = 113;
     dh = 136;
     dx = -56;
-    dy = -140;
+    dy = -136;
   } else if (action === "basic") {
     sprite = HERO_SPRITES.spin;
-    dw = 116;
+    dw = 156;
     dh = 112;
-    dx = -54;
+    dx = -78;
     dy = -112;
   } else if (action === "staffSkill") {
     sprite = HERO_SPRITES.attack;
-    dw = 222;
+    dw = 254;
     dh = 108;
-    dx = -68;
+    dx = -78;
     dy = -108;
   } else if (action === "hurt") {
     sprite = HERO_SPRITES.hurt;
-    dw = 108;
+    dw = 110;
     dh = 130;
     dx = -55;
-    dy = -128;
+    dy = -130;
   } else if (action === "dodge") {
     sprite = HERO_SPRITES.run2;
-    dw = 128;
+    dw = 127;
     dh = 112;
-    dx = -66;
-    dy = -110;
+    dx = -64;
+    dy = -112;
     ctx.globalAlpha = alpha * .72;
     px(-52, -52, 110 + rank * 12, 20, rank >= 3 ? "rgba(255, 243, 167, .28)" : "rgba(118, 215, 180, .24)");
   } else if (action === "special") {
     sprite = time % .22 < .11 ? HERO_SPRITES.special : HERO_SPRITES.spin;
-    dw = 142;
+    dw = 168;
     dh = 150;
-    dx = -70;
-    dy = -148;
+    dx = -84;
+    dy = -150;
   } else if (action === "dead") {
     sprite = HERO_SPRITES.crouch;
-    dw = 112;
+    dw = 134;
     dh = 104;
-    dx = -55;
-    dy = -102;
+    dx = -67;
+    dy = -104;
   }
   dw *= HERO_DRAW_SCALE;
   dh *= HERO_DRAW_SCALE;

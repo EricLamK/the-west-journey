@@ -56,11 +56,13 @@ def build_row(frame_paths: list[Path], fill: float) -> Image.Image:
     target_h = int(CELL_H * fill)
     scale = min(target_w / cw, target_h / ch)
     new_w, new_h = max(1, int(cw * scale)), max(1, int(ch * scale))
+    new_w = min(new_w, CELL_W)
+    new_h = min(new_h, CELL_H)
     strip = Image.new("RGBA", (CELL_W * COLS, CELL_H), (0, 0, 0, 0))
     for col, frame in enumerate(cropped):
         resized = frame.resize((new_w, new_h), Image.Resampling.LANCZOS)
         x = col * CELL_W + (CELL_W - new_w) // 2
-        y = CELL_H - new_h - 4
+        y = CELL_H - new_h
         strip.paste(resized, (x, y), resized)
     return strip
 

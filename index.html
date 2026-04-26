@@ -192,6 +192,29 @@
       display: none;
     }
 
+    .dev-link {
+      display: block;
+      margin: 14px auto 0;
+      padding: 4px 14px;
+      background: transparent;
+      border: 1px dashed rgba(246, 231, 183, .28);
+      box-shadow: none;
+      color: rgba(246, 231, 183, .55);
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 1px;
+    }
+
+    .dev-link:hover {
+      border-color: rgba(246, 231, 183, .55);
+      color: var(--ink);
+    }
+
+    .dev-link.active {
+      border-color: var(--jade);
+      color: var(--jade);
+      border-style: solid;
+    }
+
     @media (max-width: 760px) {
       .shell {
         padding: 10px;
@@ -368,6 +391,7 @@
             <h2 id="overlayTitle">五洞開戰</h2>
             <p id="overlayText">五個妖洞，每關五波怪，清完召出 BOSS。R/F 消耗 MP，V 消耗滿格 SP，過關後選一項技能升級。</p>
             <button id="startButton" type="button">START</button>
+            <button id="devBtn" type="button" class="dev-link" title="DEV mode">DEV</button>
             <div id="upgradeOptions" class="upgrade-grid hidden" aria-label="技能升級選項"></div>
           </div>
         </div>

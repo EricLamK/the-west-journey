@@ -168,6 +168,7 @@ const SKILL_DEFS = {
 
 const state = {
   running: false,
+  devMode: false,
   mode: "title",
   time: 0,
   score: 0,
@@ -1517,6 +1518,13 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (state.devMode && key === "q" && state.running) {
+    hero.hp = hero.maxHp;
+    hero.sp = hero.maxSp;
+    hero.mp = hero.maxMp;
+    return;
+  }
+
   if (!keys.has(key)) pressed.add(key);
   keys.add(key);
   if (!state.running && (key === "r" || key === "enter")) resetGame();
@@ -1540,6 +1548,28 @@ canvas.addEventListener("pointerdown", (event) => {
 });
 
 startButton.addEventListener("click", resetGame);
+
+const DEV_PASSWORD = "wukong";
+const devBtn = document.querySelector("#devBtn");
+if (devBtn) {
+  devBtn.addEventListener("click", () => {
+    if (state.devMode) {
+      state.devMode = false;
+      devBtn.classList.remove("active");
+      devBtn.textContent = "DEV";
+      return;
+    }
+    const input = window.prompt("輸入 DEV 密碼");
+    if (input == null) return;
+    if (input === DEV_PASSWORD) {
+      state.devMode = true;
+      devBtn.classList.add("active");
+      devBtn.textContent = "DEV ON · Q 回血";
+    } else {
+      window.alert("密碼錯誤");
+    }
+  });
+}
 upgradeOptions.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-skill]");
   if (button) upgradeSkill(button.dataset.skill);

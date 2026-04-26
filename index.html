@@ -214,6 +214,137 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .touch-pad {
+      position: absolute;
+      bottom: 14px;
+      z-index: 12;
+      pointer-events: none;
+      display: none;
+      grid-template-columns: 54px 54px;
+      grid-template-rows: 54px 54px;
+      gap: 8px;
+    }
+
+    .touch-pad.left {
+      left: 14px;
+    }
+
+    .touch-pad.right {
+      right: 14px;
+    }
+
+    .tc-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 2px solid rgba(246, 231, 183, .55);
+      background: rgba(8, 16, 23, .68);
+      color: var(--ink);
+      font: 800 20px/1 "Songti SC", "Noto Serif TC", "PMingLiU", serif;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .05);
+      cursor: pointer;
+      backdrop-filter: blur(2px);
+    }
+
+    .tc-btn:active,
+    .tc-btn.is-down {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .55);
+      background: rgba(245, 192, 74, .32);
+    }
+
+    .tc-btn.jump {
+      grid-column: 1 / span 2;
+      width: 100%;
+      border-color: rgba(118, 215, 180, .65);
+      color: var(--jade);
+    }
+
+    .tc-btn.attack {
+      grid-column: 1 / span 2;
+      width: 100%;
+      height: 60px;
+      background: rgba(216, 74, 54, .58);
+      border-color: rgba(255, 156, 116, .85);
+      color: #fff3a7;
+      font-size: 24px;
+    }
+
+    .tc-btn.staff {
+      background: rgba(245, 192, 74, .22);
+      border-color: rgba(245, 192, 74, .7);
+      color: var(--gold);
+    }
+
+    .tc-btn.special {
+      background: rgba(118, 215, 180, .28);
+      border-color: rgba(118, 215, 180, .7);
+      color: var(--jade);
+    }
+
+    .tc-btn.dodge {
+      border-color: rgba(246, 231, 183, .7);
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      .touch-pad.left,
+      .touch-pad.right {
+        display: grid;
+      }
+
+      .topbar .controls {
+        display: none;
+      }
+
+      canvas {
+        cursor: default;
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+      .shell {
+        padding: 4px;
+      }
+
+      .topbar {
+        display: none;
+      }
+
+      .game {
+        gap: 0;
+      }
+
+      .stage {
+        min-height: unset;
+        max-height: 100vh;
+        border-radius: 0;
+        border-width: 0;
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+      .stage::after {
+        content: "請將裝置橫放以獲得最佳體驗";
+        position: absolute;
+        inset: auto 0 0 0;
+        padding: 8px;
+        text-align: center;
+        background: rgba(8, 16, 23, .8);
+        color: var(--gold);
+        font: 700 13px/1.4 "Songti SC", serif;
+        z-index: 11;
+        pointer-events: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -240,10 +371,73 @@
             <div id="upgradeOptions" class="upgrade-grid hidden" aria-label="技能升級選項"></div>
           </div>
         </div>
+        <div class="touch-pad left" aria-hidden="true">
+          <button class="tc-btn jump" data-key=" " aria-label="跳">↑</button>
+          <button class="tc-btn dpad" data-key="ArrowLeft" aria-label="左">←</button>
+          <button class="tc-btn dpad" data-key="ArrowRight" aria-label="右">→</button>
+        </div>
+        <div class="touch-pad right" aria-hidden="true">
+          <button class="tc-btn staff" data-key="r" aria-label="金箍棒">棒</button>
+          <button class="tc-btn special" data-key="v" aria-label="絕招">絕</button>
+          <button class="tc-btn dodge" data-key="f" aria-label="閃避">閃</button>
+          <button class="tc-btn attack" data-attack aria-label="攻擊">攻</button>
+        </div>
       </div>
     </section>
   </main>
 
   <script src="game.js"></script>
+  <script>
+    (() => {
+      const dispatchKey = (type, key) => {
+        window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
+      };
+
+      document.querySelectorAll(".tc-btn").forEach((btn) => {
+        const isAttack = btn.dataset.attack !== undefined;
+        const key = btn.dataset.key;
+        let active = false;
+
+        const press = (event) => {
+          if (event) event.preventDefault();
+          if (active) return;
+          active = true;
+          btn.classList.add("is-down");
+          if (isAttack) {
+            if (typeof window.heroBasicAttack === "function") {
+              window.heroBasicAttack();
+            }
+          } else if (key) {
+            dispatchKey("keydown", key);
+          }
+        };
+
+        const release = (event) => {
+          if (event) event.preventDefault();
+          if (!active) return;
+          active = false;
+          btn.classList.remove("is-down");
+          if (!isAttack && key) dispatchKey("keyup", key);
+        };
+
+        btn.addEventListener("touchstart", press, { passive: false });
+        btn.addEventListener("touchend", release);
+        btn.addEventListener("touchcancel", release);
+        btn.addEventListener("pointerdown", (event) => {
+          if (event.pointerType === "touch") return;
+          press(event);
+        });
+        btn.addEventListener("pointerup", (event) => {
+          if (event.pointerType === "touch") return;
+          release(event);
+        });
+        btn.addEventListener("pointerleave", (event) => {
+          if (event.pointerType === "touch") return;
+          release(event);
+        });
+        btn.addEventListener("contextmenu", (event) => event.preventDefault());
+      });
+    })();
+  </script>
 </body>
 </html>

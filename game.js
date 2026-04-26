@@ -56,6 +56,12 @@ const HERO_FX_SPRITES = {
   basic: loadImage("assets/effects/hero/basic-slash.png"),
   basicHit: loadImage("assets/effects/hero/basic-hit.png"),
   basicTrailJade: loadImage("assets/effects/hero/basic-trail-jade.png"),
+  staffCharge: loadImage("assets/effects/hero/staff-charge.png"),
+  staff: loadImage("assets/effects/hero/staff-strike.png"),
+  staffWave: loadImage("assets/effects/hero/staff-wave.png"),
+  goldArray: loadImage("assets/effects/hero/gold-array.png"),
+  enemyHit: loadImage("assets/effects/hero/enemy-hit.png"),
+  hit: loadImage("assets/effects/hero/clone-hit.png"),
 };
 
 const HERO_SPRITES = {
@@ -1378,44 +1384,73 @@ function drawEffects() {
       }
     } else if (s.type === "staffCharge" || s.type === "staff") {
       ctx.scale(s.facing, 1);
-      if (s.type === "staffCharge") {
-        px(-18, -18, 36 + s.rank * 7, 36 + s.rank * 7, "rgba(245, 192, 74, .28)");
-        px(-10, -10, 20 + s.rank * 4, 20 + s.rank * 4, "rgba(255, 243, 167, .72)");
-        px(10 + p * 18, -3, 50 + s.rank * 18, 6, "rgba(245, 192, 74, .65)");
+      const _staffSprite = s.type === "staffCharge" ? HERO_FX_SPRITES.staffCharge : HERO_FX_SPRITES.staff;
+      if (_staffSprite && _staffSprite.complete && _staffSprite.naturalWidth) {
+        const sizeW = s.type === "staffCharge" ? 80 + s.rank * 14 : 240 + s.rank * 24;
+        const sizeH = s.type === "staffCharge" ? 80 + s.rank * 14 : 100 + s.rank * 8;
+        const offsetX = s.type === "staffCharge" ? -sizeW * .35 : -sizeW * .15;
+        ctx.drawImage(_staffSprite, offsetX, -sizeH / 2 - 4, sizeW, sizeH);
       } else {
-        const ext = s.rank * 34;
-        px(-112, -6, 240 + ext, 12 + s.rank, "rgba(255, 243, 167, .86)");
-        px(-112, -2, 240 + ext, 4 + Math.floor(s.rank / 2), "#f5c04a");
-        px(95 + p * 28 + ext, -18, 38 + s.rank * 6, 36, "rgba(245, 192, 74, .76)");
-        px(128 + p * 30 + ext, -8, 20 + s.rank * 4, 16, "#fff3a7");
+        // programmatic fallback while sprite loads
+        if (s.type === "staffCharge") {
+          px(-18, -18, 36 + s.rank * 7, 36 + s.rank * 7, "rgba(245, 192, 74, .28)");
+          px(-10, -10, 20 + s.rank * 4, 20 + s.rank * 4, "rgba(255, 243, 167, .72)");
+          px(10 + p * 18, -3, 50 + s.rank * 18, 6, "rgba(245, 192, 74, .65)");
+        } else {
+          const ext = s.rank * 34;
+          px(-112, -6, 240 + ext, 12 + s.rank, "rgba(255, 243, 167, .86)");
+          px(-112, -2, 240 + ext, 4 + Math.floor(s.rank / 2), "#f5c04a");
+          px(95 + p * 28 + ext, -18, 38 + s.rank * 6, 36, "rgba(245, 192, 74, .76)");
+          px(128 + p * 30 + ext, -8, 20 + s.rank * 4, 16, "#fff3a7");
+        }
       }
     } else if (s.type === "staffWave") {
       ctx.scale(s.facing, 1);
-      ctx.strokeStyle = "#fff3a7";
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(-150 - p * 18, 0);
-      ctx.lineTo(150 + p * 90, -10);
-      ctx.stroke();
-      px(110 + p * 90, -18, 60, 28, "rgba(245, 192, 74, .62)");
+      if (HERO_FX_SPRITES.staffWave && HERO_FX_SPRITES.staffWave.complete && HERO_FX_SPRITES.staffWave.naturalWidth) {
+        const sizeW = 280 + s.rank * 28;
+        const sizeH = 110 + s.rank * 10;
+        ctx.drawImage(HERO_FX_SPRITES.staffWave, -sizeW * .55, -sizeH / 2, sizeW, sizeH);
+      } else {
+        // programmatic fallback while sprite loads
+        ctx.strokeStyle = "#fff3a7";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(-150 - p * 18, 0);
+        ctx.lineTo(150 + p * 90, -10);
+        ctx.stroke();
+        px(110 + p * 90, -18, 60, 28, "rgba(245, 192, 74, .62)");
+      }
     } else if (s.type === "goldArray") {
-      ctx.strokeStyle = "#fff3a7";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(0, 0, 88 + p * 240, 0, Math.PI * 2);
-      ctx.stroke();
-      for (let i = 0; i < 12; i++) {
-        const a = Math.PI * 2 * i / 12 + p * 2;
-        px(Math.cos(a) * (120 + p * 170), Math.sin(a) * 38, 18, 4, "#f5c04a");
+      if (HERO_FX_SPRITES.goldArray && HERO_FX_SPRITES.goldArray.complete && HERO_FX_SPRITES.goldArray.naturalWidth) {
+        const size = 240 + p * 280;
+        ctx.drawImage(HERO_FX_SPRITES.goldArray, -size / 2, -size / 2, size, size);
+      } else {
+        // programmatic fallback while sprite loads
+        ctx.strokeStyle = "#fff3a7";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 88 + p * 240, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = 0; i < 12; i++) {
+          const a = Math.PI * 2 * i / 12 + p * 2;
+          px(Math.cos(a) * (120 + p * 170), Math.sin(a) * 38, 18, 4, "#f5c04a");
+        }
       }
     } else {
       ctx.scale(s.facing, 1);
-      ctx.strokeStyle = s.type === "enemyHit" ? currentLevel().colors.hazard : "#fff3a7";
-      ctx.lineWidth = s.type === "enemyHit" ? 4 : 7;
-      ctx.beginPath();
-      ctx.arc(0, 0, 21 + p * 18 + s.rank * 5, -1.1, .85);
-      ctx.stroke();
-      px(18 + p * 18, -3, 14 + s.rank * 4, 6, "rgba(255, 243, 167, .72)");
+      const _hitSprite = s.type === "enemyHit" ? HERO_FX_SPRITES.enemyHit : HERO_FX_SPRITES.hit;
+      if (_hitSprite && _hitSprite.complete && _hitSprite.naturalWidth) {
+        const hitSize = 48 + p * 32 + s.rank * 8;
+        ctx.drawImage(_hitSprite, -hitSize / 2, -hitSize / 2, hitSize, hitSize);
+      } else {
+        // programmatic fallback while sprite loads
+        ctx.strokeStyle = s.type === "enemyHit" ? currentLevel().colors.hazard : "#fff3a7";
+        ctx.lineWidth = s.type === "enemyHit" ? 4 : 7;
+        ctx.beginPath();
+        ctx.arc(0, 0, 21 + p * 18 + s.rank * 5, -1.1, .85);
+        ctx.stroke();
+        px(18 + p * 18, -3, 14 + s.rank * 4, 6, "rgba(255, 243, 167, .72)");
+      }
     }
     ctx.restore();
   });

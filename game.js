@@ -40,6 +40,24 @@ const hudFrame = loadImage("assets/ui/hud-bars.png");
 const skillEffects = loadImage("assets/effects/skill-upgrades.png");
 const healthPotionImage = loadImage("assets/items/health-potion.png");
 
+const HAZARD_SPRITES = {
+  web: loadImage("assets/effects/hazards/web.png"),
+  bone: loadImage("assets/effects/hazards/bone.png"),
+  boneLine: loadImage("assets/effects/hazards/boneLine.png"),
+  gust: loadImage("assets/effects/hazards/gust.png"),
+  tornado: loadImage("assets/effects/hazards/tornado.png"),
+  flame: loadImage("assets/effects/hazards/flame.png"),
+  meteor: loadImage("assets/effects/hazards/meteor.png"),
+  shock: loadImage("assets/effects/hazards/shock.png"),
+  dive: loadImage("assets/effects/hazards/dive.png"),
+};
+
+const HERO_FX_SPRITES = {
+  basic: loadImage("assets/effects/hero/basic-slash.png"),
+  basicHit: loadImage("assets/effects/hero/basic-hit.png"),
+  basicTrailJade: loadImage("assets/effects/hero/basic-trail-jade.png"),
+};
+
 const HERO_SPRITES = {
   idle: [32, 64, 190, 286],
   run1: [266, 116, 230, 236],
@@ -77,7 +95,7 @@ const LEVELS = [
       { name: "白骨卒", row: 0, hp: 4, speed: 48, damage: 9, reach: 34, pattern: "bone", scale: .78, sp: 12 },
       { name: "幽骨將", row: 1, hp: 6, speed: 40, damage: 11, reach: 48, pattern: "boneLine", scale: .92, sp: 18 },
     ],
-    boss: { name: "白骨夫人", hp: 118, speed: 35, damage: 16, patterns: ["boneLine", "bone", "summon"], scale: 1.5 },
+    boss: { name: "白骨夫人", hp: 118, speed: 35, damage: 16, patterns: ["boneLine", "bone", "summon"], scale: 1.6 },
   },
   {
     name: "黃風嶺",
@@ -1231,6 +1249,14 @@ function drawHazards() {
     const p = h.delay > 0 ? .25 : clamp(h.life / h.maxLife, 0, 1);
     ctx.globalAlpha = h.delay > 0 ? .38 : clamp(.28 + p, 0, 1);
     ctx.translate(h.x, h.y);
+    const _hSprite = HAZARD_SPRITES[h.type];
+    if (_hSprite && _hSprite.complete && _hSprite.naturalWidth) {
+      const dw = h.w;
+      const dh = h.h || h.w * _hSprite.naturalHeight / _hSprite.naturalWidth;
+      ctx.drawImage(_hSprite, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+      return;
+    }
     if (h.type === "spike") {
       ctx.fillStyle = h.delay > 0 ? "rgba(246, 231, 183, .22)" : h.color;
       ctx.beginPath();
@@ -1315,22 +1341,39 @@ function drawEffects() {
     ctx.globalAlpha = clamp(s.life / s.maxLife, 0, 1);
     ctx.translate(s.x, s.y);
     if (s.type === "basic" || s.type === "basicHit") {
-      const r = 28 + p * 16 + s.rank * 8;
-      const dir = s.facing;
-      ctx.strokeStyle = s.type === "basicHit" ? "#fff3a7" : "#f5c04a";
-      ctx.lineWidth = s.type === "basicHit" ? 6 + s.rank : 4 + s.rank * .7;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-dir * 18, -24);
-      ctx.quadraticCurveTo(dir * r, -28 + p * 8, dir * (r + 10), 16);
-      ctx.stroke();
-      if (s.rank >= 2) {
-        ctx.strokeStyle = "rgba(118, 215, 180, .46)";
-        ctx.lineWidth = 2 + s.rank;
+      const sprite = s.type === "basicHit" ? HERO_FX_SPRITES.basicHit : HERO_FX_SPRITES.basic;
+      const size = 96 + p * 36 + s.rank * 12;
+      if (sprite && sprite.complete && sprite.naturalWidth) {
+        ctx.save();
+        ctx.scale(s.facing, 1);
+        ctx.drawImage(sprite, -size * .25, -size * .55, size, size);
+        ctx.restore();
+        if (s.rank >= 2 && HERO_FX_SPRITES.basicTrailJade.complete && HERO_FX_SPRITES.basicTrailJade.naturalWidth) {
+          ctx.save();
+          ctx.globalAlpha *= .55;
+          ctx.scale(s.facing, 1);
+          ctx.drawImage(HERO_FX_SPRITES.basicTrailJade, -size * .15, -size * .35, size * .9, size * .9);
+          ctx.restore();
+        }
+      } else {
+        // programmatic fallback while sprites load
+        const r = 28 + p * 16 + s.rank * 8;
+        const dir = s.facing;
+        ctx.strokeStyle = s.type === "basicHit" ? "#fff3a7" : "#f5c04a";
+        ctx.lineWidth = s.type === "basicHit" ? 6 + s.rank : 4 + s.rank * .7;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(-dir * 12, -8);
-        ctx.quadraticCurveTo(dir * (r - 6), 0, dir * (r + 16), 28);
+        ctx.moveTo(-dir * 18, -24);
+        ctx.quadraticCurveTo(dir * r, -28 + p * 8, dir * (r + 10), 16);
         ctx.stroke();
+        if (s.rank >= 2) {
+          ctx.strokeStyle = "rgba(118, 215, 180, .46)";
+          ctx.lineWidth = 2 + s.rank;
+          ctx.beginPath();
+          ctx.moveTo(-dir * 12, -8);
+          ctx.quadraticCurveTo(dir * (r - 6), 0, dir * (r + 16), 28);
+          ctx.stroke();
+        }
       }
     } else if (s.type === "staffCharge" || s.type === "staff") {
       ctx.scale(s.facing, 1);

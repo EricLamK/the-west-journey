@@ -21,21 +21,6 @@ ATLAS_W, ATLAS_H = CELL_W * COLS, CELL_H * ROWS
 ROW_FILL = {0: 0.78, 1: 0.92, 2: 1.0}
 
 
-def fit_frame_into_cell(frame: Image.Image, fill: float) -> Image.Image:
-    frame = frame.convert("RGBA")
-    iw, ih = frame.size
-    target_w = int(CELL_W * fill)
-    target_h = int(CELL_H * fill)
-    scale = min(target_w / iw, target_h / ih)
-    new_w, new_h = max(1, int(iw * scale)), max(1, int(ih * scale))
-    resized = frame.resize((new_w, new_h), Image.Resampling.LANCZOS)
-    cell = Image.new("RGBA", (CELL_W, CELL_H), (0, 0, 0, 0))
-    x = (CELL_W - new_w) // 2
-    y = CELL_H - new_h - 4
-    cell.paste(resized, (x, y), resized)
-    return cell
-
-
 def discover_frames(d: Path) -> list[Path]:
     """Find 7 frame PNGs in `d`. Tries common naming schemes in order."""
     schemes = [
@@ -50,10 +35,33 @@ def discover_frames(d: Path) -> list[Path]:
 
 
 def build_row(frame_paths: list[Path], fill: float) -> Image.Image:
+    """Trim shared empty space across all frames, then resize with one shared
+    scale and bottom-align in each column. The shared crop preserves the
+    relative position of body parts across frames so the walk/attack/hurt
+    cycle plays without horizontal jitter, while removing the dead pixels
+    that were making creatures look small in the destination cell."""
+    raw = [Image.open(p).convert("RGBA") for p in frame_paths]
+    bboxes = [f.getbbox() for f in raw if f.getbbox() is not None]
+    if not bboxes:
+        return Image.new("RGBA", (CELL_W * COLS, CELL_H), (0, 0, 0, 0))
+    union = (
+        min(b[0] for b in bboxes),
+        min(b[1] for b in bboxes),
+        max(b[2] for b in bboxes),
+        max(b[3] for b in bboxes),
+    )
+    cropped = [f.crop(union) for f in raw]
+    cw, ch = union[2] - union[0], union[3] - union[1]
+    target_w = int(CELL_W * fill)
+    target_h = int(CELL_H * fill)
+    scale = min(target_w / cw, target_h / ch)
+    new_w, new_h = max(1, int(cw * scale)), max(1, int(ch * scale))
     strip = Image.new("RGBA", (CELL_W * COLS, CELL_H), (0, 0, 0, 0))
-    for col, p in enumerate(frame_paths):
-        cell = fit_frame_into_cell(Image.open(p), fill)
-        strip.paste(cell, (col * CELL_W, 0), cell)
+    for col, frame in enumerate(cropped):
+        resized = frame.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        x = col * CELL_W + (CELL_W - new_w) // 2
+        y = CELL_H - new_h - 4
+        strip.paste(resized, (x, y), resized)
     return strip
 
 

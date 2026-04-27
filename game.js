@@ -37,7 +37,7 @@ function loadImage(src) {
 
 const heroAtlas = loadImage("assets/hires-pixel-sprites.png");
 const heroWalkAtlas = loadImage("assets/hires-walk-cycle.png");
-const HERO_WALK_FRAMES = 6;
+const HERO_WALK_FRAMES = 8;
 const HERO_WALK_CELL = 192;
 const hudFrame = loadImage("assets/ui/hud-bars.png");
 const skillEffects = loadImage("assets/effects/skill-upgrades.png");
@@ -1132,7 +1132,7 @@ function drawHeroSprite(x, y, facing, action, time, alpha = 1, rank = 0) {
   let dy = -142;
   if (action === "run") {
     if (heroWalkAtlas.complete && heroWalkAtlas.naturalWidth) {
-      const frame = Math.floor(time * 9) % HERO_WALK_FRAMES;
+      const frame = Math.floor(time * 12) % HERO_WALK_FRAMES;
       const dh = 122;
       const dw = 122;
       const dx = -dw / 2;

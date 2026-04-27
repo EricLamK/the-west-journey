@@ -36,9 +36,6 @@ function loadImage(src) {
 }
 
 const heroAtlas = loadImage("assets/hires-pixel-sprites.png");
-const heroWalkAtlas = loadImage("assets/hires-walk-cycle.png");
-const HERO_WALK_FRAMES = 8;
-const HERO_WALK_CELL = 192;
 const hudFrame = loadImage("assets/ui/hud-bars.png");
 const skillEffects = loadImage("assets/effects/skill-upgrades.png");
 const healthPotionImage = loadImage("assets/items/health-potion.png");
@@ -1131,25 +1128,11 @@ function drawHeroSprite(x, y, facing, action, time, alpha = 1, rank = 0) {
   let dx = -49;
   let dy = -142;
   if (action === "run") {
-    if (heroWalkAtlas.complete && heroWalkAtlas.naturalWidth) {
-      const frame = Math.floor(time * 12) % HERO_WALK_FRAMES;
-      const dh = 122;
-      const dw = 122;
-      const dx = -dw / 2;
-      const dy = -dh;
-      const dw_eff = dw * HERO_DRAW_SCALE;
-      const dh_eff = dh * HERO_DRAW_SCALE;
-      const dx_eff = dx * HERO_DRAW_SCALE;
-      const dy_eff = dy * HERO_DRAW_SCALE;
-      ctx.drawImage(heroWalkAtlas, frame * HERO_WALK_CELL, 0, HERO_WALK_CELL, HERO_WALK_CELL, dx_eff, dy_eff, dw_eff, dh_eff);
-      ctx.restore();
-      return;
-    }
     sprite = phase ? HERO_SPRITES.run2 : HERO_SPRITES.run1;
     dw = 148;
     dh = 122;
     dx = -74;
-    dy = -122;
+    dy = -122 + (phase ? -2 : 0);
   } else if (action === "jump" || action === "fall") {
     sprite = HERO_SPRITES.jump;
     dw = 113;

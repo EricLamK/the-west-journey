@@ -1591,6 +1591,18 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (state.devMode && key === "b" && state.running && !state.bossSpawned) {
+    state.enemies = [];
+    state.hazards = [];
+    state.waveIndex = 4;
+    state.waveQuota = 0;
+    state.waveSpawned = 0;
+    state.waveKills = 0;
+    spawnBoss();
+    showNotice(`DEV · 直接 BOSS · ${currentLevel().boss.name}`);
+    return;
+  }
+
   if (!keys.has(key)) pressed.add(key);
   keys.add(key);
   if (!state.running && (key === "r" || key === "enter")) resetGame();
@@ -1634,7 +1646,7 @@ if (devBtn) {
     if (input === DEV_PASSWORD) {
       state.devMode = true;
       devBtn.classList.add("active");
-      devBtn.textContent = "DEV ON · Q回血 · 1-5跳關";
+      devBtn.textContent = "DEV ON · Q回血 · 1-5跳關 · B跳BOSS";
     } else {
       window.alert("密碼錯誤");
     }

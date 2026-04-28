@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>西行妖洞 Pixel</title>
   <link rel="icon" href="data:,">
   <style>
@@ -31,6 +31,16 @@
         linear-gradient(135deg, #071017 0%, #111a22 52%, #1a1018 100%);
       color: var(--ink);
       font-family: "Songti SC", "Noto Serif TC", "PMingLiU", Georgia, serif;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body.is-touch,
+    body.is-touch html {
+      touch-action: none;
+    }
+
+    body.is-touch canvas {
+      touch-action: none;
     }
 
     .shell {
@@ -238,134 +248,227 @@
       }
     }
 
-    .touch-pad {
+    .touch-zone {
       position: absolute;
-      bottom: 14px;
       z-index: 12;
-      pointer-events: none;
       display: none;
-      grid-template-columns: 54px 54px;
-      grid-template-rows: 54px 54px;
-      gap: 8px;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
     }
 
-    .touch-pad.left {
-      left: 14px;
+    .touch-zone.left {
+      left: env(safe-area-inset-left, 0);
+      bottom: env(safe-area-inset-bottom, 0);
+      width: 44%;
+      height: 70%;
+      pointer-events: auto;
     }
 
-    .touch-pad.right {
-      right: 14px;
+    .touch-zone.right {
+      right: env(safe-area-inset-right, 0);
+      bottom: env(safe-area-inset-bottom, 0);
+      width: 50%;
+      height: 70%;
+    }
+
+    .joystick {
+      position: absolute;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      border: 2px solid rgba(246, 231, 183, .42);
+      background: radial-gradient(circle at 50% 50%, rgba(8, 16, 23, .42), rgba(8, 16, 23, .12));
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: opacity .12s ease;
+      opacity: 0;
+    }
+
+    .joystick.is-active {
+      opacity: 1;
+    }
+
+    .joystick::before {
+      content: "";
+      position: absolute;
+      inset: 18%;
+      border-radius: 50%;
+      border: 1px dashed rgba(246, 231, 183, .25);
+    }
+
+    .joystick .thumb {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 56px;
+      height: 56px;
+      margin: -28px 0 0 -28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(245, 192, 74, .9), rgba(201, 121, 45, .85) 70%, rgba(105, 39, 29, .95));
+      border: 1px solid rgba(255, 235, 196, .65);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .12);
+      transform: translate(var(--jx, 0px), var(--jy, 0px));
+      pointer-events: none;
     }
 
     .tc-btn {
-      width: 54px;
-      height: 54px;
+      position: absolute;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       border: 2px solid rgba(246, 231, 183, .55);
-      background: rgba(8, 16, 23, .68);
+      background: rgba(8, 16, 23, .72);
       color: var(--ink);
       font: 800 20px/1 "Songti SC", "Noto Serif TC", "PMingLiU", serif;
       pointer-events: auto;
       user-select: none;
       -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      touch-action: none;
       padding: 0;
       display: grid;
       place-items: center;
       box-shadow: 0 4px 0 rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .05);
       cursor: pointer;
-      backdrop-filter: blur(2px);
+      overflow: visible;
     }
 
-    .tc-btn:active,
+    .tc-btn::before {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(rgba(8, 16, 23, .78) calc(var(--cd, 0) * 360deg), transparent 0deg);
+      -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%);
+      mask: radial-gradient(circle, transparent 60%, #000 62%);
+      pointer-events: none;
+      opacity: var(--cd-opacity, .9);
+      transition: opacity .14s ease;
+    }
+
+    .tc-btn.is-disabled {
+      opacity: .42;
+      filter: saturate(.45);
+    }
+
     .tc-btn.is-down {
       transform: translateY(2px);
       box-shadow: 0 2px 0 rgba(0, 0, 0, .55);
       background: rgba(245, 192, 74, .32);
     }
 
-    .tc-btn.jump {
-      grid-column: 1 / span 2;
-      width: 100%;
-      border-color: rgba(118, 215, 180, .65);
-      color: var(--jade);
+    .tc-btn.attack {
+      width: 92px;
+      height: 92px;
+      right: 18px;
+      bottom: 18px;
+      background: radial-gradient(circle at 35% 30%, rgba(255, 156, 116, .9), rgba(216, 74, 54, .82) 65%, rgba(105, 28, 22, .95));
+      border-color: rgba(255, 200, 168, .85);
+      color: #fff3a7;
+      font-size: 26px;
+      box-shadow: 0 5px 0 rgba(50, 12, 8, .85), inset 0 0 0 1px rgba(255, 255, 255, .08);
     }
 
-    .tc-btn.attack {
-      grid-column: 1 / span 2;
-      width: 100%;
-      height: 60px;
-      background: rgba(216, 74, 54, .58);
-      border-color: rgba(255, 156, 116, .85);
-      color: #fff3a7;
-      font-size: 24px;
+    .tc-btn.jump {
+      width: 70px;
+      height: 70px;
+      right: 110px;
+      bottom: 38px;
+      border-color: rgba(118, 215, 180, .72);
+      color: var(--jade);
+      background: rgba(12, 28, 30, .74);
     }
 
     .tc-btn.staff {
-      background: rgba(245, 192, 74, .22);
-      border-color: rgba(245, 192, 74, .7);
-      color: var(--gold);
+      right: 192px;
+      bottom: 110px;
+      background: radial-gradient(circle at 35% 30%, rgba(255, 218, 138, .85), rgba(245, 192, 74, .55) 70%, rgba(110, 67, 16, .95));
+      border-color: rgba(245, 192, 74, .82);
+      color: #2a1808;
+      font-weight: 900;
     }
 
     .tc-btn.special {
-      background: rgba(118, 215, 180, .28);
-      border-color: rgba(118, 215, 180, .7);
-      color: var(--jade);
+      right: 100px;
+      bottom: 138px;
+      background: radial-gradient(circle at 35% 30%, rgba(180, 240, 220, .8), rgba(118, 215, 180, .55) 70%, rgba(20, 80, 70, .95));
+      border-color: rgba(160, 240, 220, .82);
+      color: #082a22;
+      font-weight: 900;
     }
 
     .tc-btn.dodge {
-      border-color: rgba(246, 231, 183, .7);
+      right: 14px;
+      bottom: 124px;
+      border-color: rgba(246, 231, 183, .72);
+      background: rgba(20, 32, 42, .8);
     }
 
-    @media (hover: none) and (pointer: coarse) {
-      .touch-pad.left,
-      .touch-pad.right {
-        display: grid;
-      }
-
-      .topbar .controls {
-        display: none;
-      }
-
-      canvas {
-        cursor: default;
-      }
-    }
-
-    @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-      .shell {
-        padding: 4px;
-      }
-
-      .topbar {
-        display: none;
-      }
-
-      .game {
-        gap: 0;
-      }
-
-      .stage {
-        min-height: unset;
-        max-height: 100vh;
-        border-radius: 0;
-        border-width: 0;
-      }
-    }
-
-    @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
-      .stage::after {
+    @media (orientation: portrait) {
+      body.is-touch .stage::after {
         content: "請將裝置橫放以獲得最佳體驗";
         position: absolute;
         inset: auto 0 0 0;
         padding: 8px;
         text-align: center;
-        background: rgba(8, 16, 23, .8);
+        background: rgba(8, 16, 23, .85);
         color: var(--gold);
         font: 700 13px/1.4 "Songti SC", serif;
         z-index: 11;
         pointer-events: none;
+      }
+    }
+
+    body.is-touch canvas {
+      cursor: default;
+    }
+
+    body.is-touch .topbar .controls {
+      display: none;
+    }
+
+    body.is-touch.in-game .touch-zone.left,
+    body.is-touch.in-game .touch-zone.right {
+      display: block;
+    }
+
+    @media (orientation: landscape) {
+      body.is-touch .shell {
+        padding: 0;
+      }
+
+      body.is-touch .topbar {
+        display: none;
+      }
+
+      body.is-touch .game {
+        gap: 0;
+      }
+
+      body.is-touch .stage {
+        position: fixed;
+        inset: 0;
+        max-width: none;
+        max-height: none;
+        min-height: 0;
+        aspect-ratio: auto;
+        border-radius: 0;
+        border-width: 0;
+        display: grid;
+        place-items: center;
+        background: #050b10;
+        overflow: hidden;
+      }
+
+      body.is-touch .stage canvas {
+        aspect-ratio: 16 / 9;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
       }
     }
   </style>
@@ -395,16 +498,17 @@
             <div id="upgradeOptions" class="upgrade-grid hidden" aria-label="技能升級選項"></div>
           </div>
         </div>
-        <div class="touch-pad left" aria-hidden="true">
-          <button class="tc-btn jump" data-key=" " aria-label="跳">↑</button>
-          <button class="tc-btn dpad" data-key="ArrowLeft" aria-label="左">←</button>
-          <button class="tc-btn dpad" data-key="ArrowRight" aria-label="右">→</button>
+        <div class="touch-zone left" aria-hidden="true" data-joystick>
+          <div class="joystick" data-joystick-pad>
+            <div class="thumb"></div>
+          </div>
         </div>
-        <div class="touch-pad right" aria-hidden="true">
-          <button class="tc-btn staff" data-key="r" aria-label="金箍棒">棒</button>
-          <button class="tc-btn special" data-key="v" aria-label="絕招">絕</button>
-          <button class="tc-btn dodge" data-key="f" aria-label="閃避">閃</button>
-          <button class="tc-btn attack" data-attack aria-label="攻擊">攻</button>
+        <div class="touch-zone right" aria-hidden="true">
+          <button class="tc-btn staff" data-skill="staff" aria-label="金箍棒">棒</button>
+          <button class="tc-btn special" data-skill="special" aria-label="絕招">絕</button>
+          <button class="tc-btn dodge" data-skill="dodge" aria-label="閃避">閃</button>
+          <button class="tc-btn jump" data-skill="jump" aria-label="跳">跳</button>
+          <button class="tc-btn attack" data-skill="attack" aria-label="攻擊">攻</button>
         </div>
       </div>
     </section>
@@ -413,53 +517,161 @@
   <script src="game.js"></script>
   <script>
     (() => {
-      const dispatchKey = (type, key) => {
-        window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
+      const isTouchCapable =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
+      if (isTouchCapable) document.body.classList.add("is-touch");
+
+      const blockZoom = (event) => event.preventDefault();
+      document.addEventListener("gesturestart", blockZoom);
+      document.addEventListener("gesturechange", blockZoom);
+      document.addEventListener("gestureend", blockZoom);
+      document.addEventListener("dblclick", blockZoom);
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", (event) => {
+        const now = Date.now();
+        if (now - lastTouchEnd < 320) event.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+
+      const joystickZone = document.querySelector(".touch-zone.left");
+      const joystickPad = document.querySelector("[data-joystick-pad]");
+      const joystickThumb = joystickPad ? joystickPad.querySelector(".thumb") : null;
+      const JOY_RADIUS = 56;
+      let joyPointerId = null;
+
+      const setAxis = (value) => {
+        if (typeof window.setMobileAxisX === "function") window.setMobileAxisX(value);
       };
 
-      document.querySelectorAll(".tc-btn").forEach((btn) => {
-        const isAttack = btn.dataset.attack !== undefined;
-        const key = btn.dataset.key;
-        let active = false;
+      const placeJoystick = (clientX, clientY) => {
+        const rect = joystickZone.getBoundingClientRect();
+        joystickPad.style.left = (clientX - rect.left) + "px";
+        joystickPad.style.top = (clientY - rect.top) + "px";
+        joystickPad.style.setProperty("--jx", "0px");
+        joystickPad.style.setProperty("--jy", "0px");
+        joystickPad.classList.add("is-active");
+      };
+
+      const updateJoystick = (clientX, clientY) => {
+        const rect = joystickPad.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = clientX - cx;
+        let dy = clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > JOY_RADIUS) {
+          dx = (dx / dist) * JOY_RADIUS;
+          dy = (dy / dist) * JOY_RADIUS;
+        }
+        joystickPad.style.setProperty("--jx", dx + "px");
+        joystickPad.style.setProperty("--jy", dy + "px");
+        setAxis(Math.max(-1, Math.min(1, dx / JOY_RADIUS)));
+      };
+
+      const releaseJoystick = () => {
+        joyPointerId = null;
+        joystickPad.classList.remove("is-active");
+        joystickPad.style.setProperty("--jx", "0px");
+        joystickPad.style.setProperty("--jy", "0px");
+        setAxis(0);
+      };
+
+      if (joystickZone && joystickPad) {
+        joystickZone.addEventListener("pointerdown", (event) => {
+          if (joyPointerId !== null) return;
+          joyPointerId = event.pointerId;
+          joystickZone.setPointerCapture(event.pointerId);
+          placeJoystick(event.clientX, event.clientY);
+          event.preventDefault();
+        });
+        joystickZone.addEventListener("pointermove", (event) => {
+          if (event.pointerId !== joyPointerId) return;
+          updateJoystick(event.clientX, event.clientY);
+        });
+        const endJoy = (event) => {
+          if (event.pointerId !== joyPointerId) return;
+          releaseJoystick();
+        };
+        joystickZone.addEventListener("pointerup", endJoy);
+        joystickZone.addEventListener("pointercancel", endJoy);
+        joystickZone.addEventListener("pointerleave", endJoy);
+      }
+
+      const skillActions = {
+        attack: { down: () => window.heroBasicAttack && window.heroBasicAttack() },
+        staff: { down: () => window.heroStaffSkill && window.heroStaffSkill() },
+        special: { down: () => window.heroSpecial && window.heroSpecial() },
+        dodge: { down: () => window.heroDodge && window.heroDodge() },
+        jump: {
+          down: () => window.heroJump && window.heroJump(),
+          up: () => window.heroJumpRelease && window.heroJumpRelease(),
+        },
+      };
+
+      document.querySelectorAll(".tc-btn[data-skill]").forEach((btn) => {
+        const action = skillActions[btn.dataset.skill];
+        if (!action) return;
+        let activePointer = null;
 
         const press = (event) => {
-          if (event) event.preventDefault();
-          if (active) return;
-          active = true;
+          if (activePointer !== null) return;
+          activePointer = event.pointerId ?? "mouse";
           btn.classList.add("is-down");
-          if (isAttack) {
-            if (typeof window.heroBasicAttack === "function") {
-              window.heroBasicAttack();
-            }
-          } else if (key) {
-            dispatchKey("keydown", key);
+          if (event.pointerId !== undefined && btn.setPointerCapture) {
+            try { btn.setPointerCapture(event.pointerId); } catch (_) {}
           }
+          if (action.down) action.down();
+          event.preventDefault();
         };
 
         const release = (event) => {
-          if (event) event.preventDefault();
-          if (!active) return;
-          active = false;
+          const pid = event.pointerId ?? "mouse";
+          if (activePointer !== pid) return;
+          activePointer = null;
           btn.classList.remove("is-down");
-          if (!isAttack && key) dispatchKey("keyup", key);
+          if (action.up) action.up();
         };
 
-        btn.addEventListener("touchstart", press, { passive: false });
-        btn.addEventListener("touchend", release);
-        btn.addEventListener("touchcancel", release);
-        btn.addEventListener("pointerdown", (event) => {
-          if (event.pointerType === "touch") return;
-          press(event);
-        });
-        btn.addEventListener("pointerup", (event) => {
-          if (event.pointerType === "touch") return;
-          release(event);
-        });
-        btn.addEventListener("pointerleave", (event) => {
-          if (event.pointerType === "touch") return;
-          release(event);
-        });
+        btn.addEventListener("pointerdown", press);
+        btn.addEventListener("pointerup", release);
+        btn.addEventListener("pointercancel", release);
+        btn.addEventListener("pointerleave", release);
         btn.addEventListener("contextmenu", (event) => event.preventDefault());
+      });
+
+      const buttonRefs = {
+        attack: document.querySelector('.tc-btn[data-skill="attack"]'),
+        staff: document.querySelector('.tc-btn[data-skill="staff"]'),
+        special: document.querySelector('.tc-btn[data-skill="special"]'),
+        dodge: document.querySelector('.tc-btn[data-skill="dodge"]'),
+        jump: document.querySelector('.tc-btn[data-skill="jump"]'),
+      };
+
+      const setCd = (el, frac, disabled) => {
+        if (!el) return;
+        el.style.setProperty("--cd", frac.toFixed(3));
+        el.classList.toggle("is-disabled", !!disabled);
+      };
+
+      const tick = () => {
+        const snap = typeof window.heroState === "function" ? window.heroState() : null;
+        if (snap && snap.running) {
+          setCd(buttonRefs.attack, snap.basicCdFrac, !snap.basicReady);
+          setCd(buttonRefs.staff, snap.staffCdFrac, !snap.staffReady);
+          setCd(buttonRefs.dodge, snap.dodgeCdFrac, !snap.dodgeReady);
+          setCd(buttonRefs.special, 1 - snap.spFrac, !snap.spReady);
+          setCd(buttonRefs.jump, 0, !snap.grounded);
+        } else {
+          [buttonRefs.attack, buttonRefs.staff, buttonRefs.dodge, buttonRefs.special, buttonRefs.jump].forEach((el) => setCd(el, 0, false));
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+      window.addEventListener("blur", () => {
+        if (joyPointerId !== null) releaseJoystick();
       });
     })();
   </script>

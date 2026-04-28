@@ -202,6 +202,7 @@ const state = {
   notice: { text: "", life: 0 },
   resourceFlash: { mp: 0, sp: 0 },
   skills: { basic: 0, staff: 0, dodge: 0, special: 0 },
+  mobileAxisX: 0,
 };
 
 const hero = {
@@ -222,9 +223,13 @@ const hero = {
   action: "idle",
   actionTime: 0,
   actionDuration: 0,
-  attackCooldown: 0,
+  basicCd: 0,
+  basicCdMax: 0.24,
+  staffCd: 0,
+  staffCdMax: 0.82,
   attackHit: false,
   dodgeCooldown: 0,
+  dodgeCooldownMax: 0.9,
   invuln: 0,
   hurtTime: 0,
   anim: 0,
@@ -285,6 +290,7 @@ function resetGame() {
   resetHero(true);
   setupLevel(0);
   hideOverlay();
+  document.body.classList.add("in-game");
 }
 
 function resetHero(fullReset = false) {
@@ -301,7 +307,8 @@ function resetHero(fullReset = false) {
     action: "idle",
     actionTime: 0,
     actionDuration: 0,
-    attackCooldown: 0,
+    basicCd: 0,
+    staffCd: 0,
     attackHit: false,
     dodgeCooldown: 0,
     invuln: 0,
@@ -353,18 +360,21 @@ function endGame() {
   state.running = false;
   state.mode = "gameover";
   hero.action = "dead";
+  document.body.classList.remove("in-game");
   showOverlay("大聖暫退", `最終分數 ${state.score}，闖到 ${currentLevel().name} 第 ${state.waveIndex + 1} 波。`, "RESTART");
 }
 
 function victory() {
   state.running = false;
   state.mode = "victory";
+  document.body.classList.remove("in-game");
   showOverlay("五洞平定", `全破完成，最終分數 ${state.score}。四項技能升級保留了你的打法路線。`, "RESTART");
 }
 
 function showUpgradeOverlay() {
   state.running = false;
   state.mode = "upgrade";
+  document.body.classList.remove("in-game");
   overlayTitle.textContent = `${currentLevel().name} 已破`;
   overlayText.textContent = "選一項技能升級。每項最高四級，可以全部集中投資同一招。";
   startButton.classList.add("hidden");
@@ -395,6 +405,7 @@ function upgradeSkill(id) {
   state.mode = "playing";
   setupLevel(next);
   hideOverlay();
+  document.body.classList.add("in-game");
 }
 
 function finishBoss() {
@@ -453,26 +464,28 @@ function actionLocked() {
 }
 
 function canStartAction() {
-  return state.running && hero.attackCooldown <= 0 && hero.action !== "hurt" && hero.action !== "dodge" && hero.action !== "dead";
+  return state.running && hero.action !== "hurt" && hero.action !== "dodge" && hero.action !== "dead";
 }
 
 function heroBasicAttack() {
-  if (!canStartAction()) return;
+  if (!canStartAction() || hero.basicCd > 0) return;
   const rank = state.skills.basic;
   setHeroAction("basic", .28 + rank * .015);
   hero.actionTime = 0;
-  hero.attackCooldown = Math.max(.15, .24 - rank * .018);
+  hero.basicCd = Math.max(.15, .24 - rank * .018);
+  hero.basicCdMax = hero.basicCd;
   hero.attackHit = false;
   hero.vx *= .45;
   addSlash(hero.x + hero.facing * (42 + rank * 4), hero.y - 34, hero.facing, "basic", rank);
 }
 
 function heroStaffSkill() {
-  if (!canStartAction() || !spendMp(MP_COST_R)) return;
+  if (!canStartAction() || hero.staffCd > 0 || !spendMp(MP_COST_R)) return;
   const rank = state.skills.staff;
   setHeroAction("staffSkill", .52 + rank * .035);
   hero.actionTime = 0;
-  hero.attackCooldown = Math.max(.5, .82 - rank * .06);
+  hero.staffCd = Math.max(.5, .82 - rank * .06);
+  hero.staffCdMax = hero.staffCd;
   hero.attackHit = false;
   hero.vx *= .15;
   addSlash(hero.x + hero.facing * 42, hero.y - 42, hero.facing, "staffCharge", rank);
@@ -485,6 +498,7 @@ function heroDodge() {
   setHeroAction("dodge", .28 + rank * .02);
   hero.actionTime = 0;
   hero.dodgeCooldown = Math.max(.48, .9 - rank * .1);
+  hero.dodgeCooldownMax = hero.dodgeCooldown;
   hero.invuln = .42 + rank * .07;
   hero.vx = hero.facing * (390 + rank * 32);
   hero.x = clamp(hero.x + hero.facing * (24 + rank * 8), 22, currentWorldWidth() - 22);
@@ -654,7 +668,8 @@ function update(dt) {
   state.resourceFlash.sp = Math.max(0, state.resourceFlash.sp - dt);
   state.notice.life = Math.max(0, state.notice.life - dt);
   state.banner.life = Math.max(0, state.banner.life - dt);
-  hero.attackCooldown = Math.max(0, hero.attackCooldown - dt);
+  hero.basicCd = Math.max(0, hero.basicCd - dt);
+  hero.staffCd = Math.max(0, hero.staffCd - dt);
   hero.dodgeCooldown = Math.max(0, hero.dodgeCooldown - dt);
   hero.invuln = Math.max(0, hero.invuln - dt);
   hero.hurtTime = Math.max(0, hero.hurtTime - dt);
@@ -677,18 +692,25 @@ function update(dt) {
 }
 
 function updateHero(dt) {
-  const left = keys.has("a") || keys.has("ArrowLeft");
-  const right = keys.has("d") || keys.has("ArrowRight");
+  const axisX = clamp(state.mobileAxisX || 0, -1, 1);
+  const axisLeftMag = axisX < -0.18 ? Math.min(1, -axisX) : 0;
+  const axisRightMag = axisX > 0.18 ? Math.min(1, axisX) : 0;
+  const keyLeft = keys.has("a") || keys.has("ArrowLeft");
+  const keyRight = keys.has("d") || keys.has("ArrowRight");
+  const left = keyLeft || axisLeftMag > 0;
+  const right = keyRight || axisRightMag > 0;
+  const leftMag = Math.max(keyLeft ? 1 : 0, axisLeftMag);
+  const rightMag = Math.max(keyRight ? 1 : 0, axisRightMag);
   const jump = pressed.has("w") || pressed.has("ArrowUp") || pressed.has(" ");
   const locked = actionLocked();
 
   if (!locked) {
     if (left) {
-      hero.vx -= 780 * dt;
+      hero.vx -= 780 * dt * leftMag;
       hero.facing = -1;
     }
     if (right) {
-      hero.vx += 780 * dt;
+      hero.vx += 780 * dt * rightMag;
       hero.facing = 1;
     }
     if (!left && !right && hero.grounded) hero.vx *= Math.pow(.0006, dt);
@@ -1573,6 +1595,10 @@ window.addEventListener("keyup", (event) => {
 canvas.addEventListener("pointermove", updateCursor);
 
 canvas.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "touch") {
+    if (!state.running && state.mode !== "upgrade") resetGame();
+    return;
+  }
   updateCursor(event);
   if (!state.running && state.mode !== "upgrade") {
     resetGame();
@@ -1613,5 +1639,44 @@ upgradeOptions.addEventListener("click", (event) => {
 updateTitle();
 showOverlay("五洞開戰", "五個妖洞，每關五波怪，清完召出 BOSS。R/F 消耗 MP，V 消耗滿格 SP，過關後選一項技能升級。", "START");
 requestAnimationFrame(loop);
+
+window.heroBasicAttack = heroBasicAttack;
+window.heroStaffSkill = heroStaffSkill;
+window.heroDodge = heroDodge;
+window.heroSpecial = heroSpecial;
+window.heroJump = function heroJumpExternal() {
+  if (!state.running) return;
+  if (hero.action === "hurt" || hero.action === "dead") return;
+  pressed.add(" ");
+  keys.add(" ");
+};
+window.heroJumpRelease = function heroJumpReleaseExternal() {
+  keys.delete(" ");
+};
+window.setMobileAxisX = function setMobileAxisX(value) {
+  state.mobileAxisX = clamp(Number(value) || 0, -1, 1);
+};
+window.heroState = function heroStateSnapshot() {
+  const basicMax = hero.basicCdMax || 0.24;
+  const staffMax = hero.staffCdMax || 0.82;
+  const dodgeMax = hero.dodgeCooldownMax || 0.9;
+  const alive = state.running && hero.action !== "hurt" && hero.action !== "dodge" && hero.action !== "dead";
+  const aliveDodge = state.running && hero.action !== "hurt" && hero.action !== "dead";
+  return {
+    running: state.running,
+    mode: state.mode,
+    grounded: hero.grounded,
+    basicReady: alive && hero.basicCd <= 0,
+    staffReady: alive && hero.staffCd <= 0 && hero.mp >= MP_COST_R,
+    dodgeReady: aliveDodge && hero.dodgeCooldown <= 0 && hero.mp >= MP_COST_F,
+    basicCdFrac: clamp(hero.basicCd / basicMax, 0, 1),
+    staffCdFrac: clamp(hero.staffCd / staffMax, 0, 1),
+    dodgeCdFrac: clamp(hero.dodgeCooldown / dodgeMax, 0, 1),
+    staffMpOk: hero.mp >= MP_COST_R,
+    dodgeMpOk: hero.mp >= MP_COST_F,
+    spReady: hero.sp >= hero.maxSp,
+    spFrac: clamp(hero.sp / hero.maxSp, 0, 1),
+  };
+};
 
 window.__pansiGame = { state, hero, LEVELS, SKILL_DEFS, resetGame, upgradeSkill };

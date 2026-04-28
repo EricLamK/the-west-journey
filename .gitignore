@@ -1,3 +1,5 @@
 generated_imgs/
 sprite_work/
 .DS_Store
+.playwright-mcp/
+pansi-*.png

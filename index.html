@@ -276,8 +276,8 @@
 
     .joystick {
       position: absolute;
-      width: 132px;
-      height: 132px;
+      width: 108px;
+      height: 108px;
       border-radius: 50%;
       border: 2px solid rgba(246, 231, 183, .42);
       background: radial-gradient(circle at 50% 50%, rgba(8, 16, 23, .42), rgba(8, 16, 23, .12));
@@ -303,9 +303,9 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 56px;
-      height: 56px;
-      margin: -28px 0 0 -28px;
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
       border-radius: 50%;
       background: radial-gradient(circle at 35% 30%, rgba(245, 192, 74, .9), rgba(201, 121, 45, .85) 70%, rgba(105, 39, 29, .95));
       border: 1px solid rgba(255, 235, 196, .65);
@@ -316,13 +316,13 @@
 
     .tc-btn {
       position: absolute;
-      width: 60px;
-      height: 60px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       border: 2px solid rgba(246, 231, 183, .55);
       background: rgba(8, 16, 23, .72);
       color: var(--ink);
-      font: 800 20px/1 "Songti SC", "Noto Serif TC", "PMingLiU", serif;
+      font: 800 16px/1 "Songti SC", "Noto Serif TC", "PMingLiU", serif;
       pointer-events: auto;
       user-select: none;
       -webkit-user-select: none;
@@ -360,51 +360,113 @@
       background: rgba(245, 192, 74, .32);
     }
 
+    .tc-btn.has-icon {
+      font-size: 0;
+      color: transparent;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, .65), inset 0 0 0 1px rgba(255, 255, 255, .06);
+    }
+
+    .tc-btn.attack.has-icon {
+      background: radial-gradient(circle at 50% 55%, rgba(216, 74, 54, .55) 0%, rgba(40, 12, 8, .94) 70%) !important;
+    }
+
+    .tc-btn.staff.has-icon {
+      background: radial-gradient(circle at 50% 55%, rgba(245, 192, 74, .42) 0%, rgba(36, 22, 8, .94) 70%) !important;
+    }
+
+    .tc-btn.special.has-icon {
+      background: radial-gradient(circle at 50% 55%, rgba(118, 215, 180, .4) 0%, rgba(8, 30, 22, .96) 70%) !important;
+    }
+
+    .tc-btn.dodge.has-icon {
+      background: radial-gradient(circle at 50% 55%, rgba(118, 200, 220, .42) 0%, rgba(8, 18, 26, .96) 70%) !important;
+    }
+
+    .tc-btn.jump.has-icon {
+      background: radial-gradient(circle at 50% 55%, rgba(180, 240, 220, .35) 0%, rgba(10, 24, 22, .96) 70%) !important;
+    }
+
+    .tc-btn.has-icon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 108%;
+      pointer-events: none;
+      filter:
+        drop-shadow(0 0 4px rgba(0, 0, 0, .85))
+        drop-shadow(0 2px 2px rgba(0, 0, 0, .75))
+        brightness(1.18)
+        saturate(1.25)
+        contrast(1.1);
+    }
+
     .tc-btn.attack {
-      width: 92px;
-      height: 92px;
-      right: 18px;
-      bottom: 18px;
+      width: 72px;
+      height: 72px;
+      right: 14px;
+      bottom: 14px;
       background: radial-gradient(circle at 35% 30%, rgba(255, 156, 116, .9), rgba(216, 74, 54, .82) 65%, rgba(105, 28, 22, .95));
       border-color: rgba(255, 200, 168, .85);
       color: #fff3a7;
-      font-size: 26px;
+      font-size: 20px;
       box-shadow: 0 5px 0 rgba(50, 12, 8, .85), inset 0 0 0 1px rgba(255, 255, 255, .08);
     }
 
+    .tc-btn.attack.has-icon::after {
+      background-image: url("assets/icons/icon-attack.png");
+    }
+
     .tc-btn.jump {
-      width: 70px;
-      height: 70px;
-      right: 110px;
-      bottom: 38px;
+      width: 54px;
+      height: 54px;
+      right: 90px;
+      bottom: 26px;
       border-color: rgba(118, 215, 180, .72);
       color: var(--jade);
       background: rgba(12, 28, 30, .74);
     }
 
+    .tc-btn.jump.has-icon::after {
+      background-image: url("assets/icons/icon-jump.png");
+    }
+
     .tc-btn.staff {
-      right: 192px;
-      bottom: 110px;
+      right: 152px;
+      bottom: 86px;
       background: radial-gradient(circle at 35% 30%, rgba(255, 218, 138, .85), rgba(245, 192, 74, .55) 70%, rgba(110, 67, 16, .95));
       border-color: rgba(245, 192, 74, .82);
       color: #2a1808;
       font-weight: 900;
     }
 
+    .tc-btn.staff.has-icon::after {
+      background-image: url("assets/icons/icon-staff.png");
+    }
+
     .tc-btn.special {
-      right: 100px;
-      bottom: 138px;
+      right: 82px;
+      bottom: 108px;
       background: radial-gradient(circle at 35% 30%, rgba(180, 240, 220, .8), rgba(118, 215, 180, .55) 70%, rgba(20, 80, 70, .95));
       border-color: rgba(160, 240, 220, .82);
       color: #082a22;
       font-weight: 900;
     }
 
+    .tc-btn.special.has-icon::after {
+      background-image: url("assets/icons/icon-special.png");
+    }
+
     .tc-btn.dodge {
-      right: 14px;
-      bottom: 124px;
+      right: 12px;
+      bottom: 96px;
       border-color: rgba(246, 231, 183, .72);
       background: rgba(20, 32, 42, .8);
+    }
+
+    .tc-btn.dodge.has-icon::after {
+      background-image: url("assets/icons/icon-dodge.png");
     }
 
     @media (orientation: portrait) {
@@ -504,11 +566,11 @@
           </div>
         </div>
         <div class="touch-zone right" aria-hidden="true">
-          <button class="tc-btn staff" data-skill="staff" aria-label="金箍棒">棒</button>
-          <button class="tc-btn special" data-skill="special" aria-label="絕招">絕</button>
-          <button class="tc-btn dodge" data-skill="dodge" aria-label="閃避">閃</button>
-          <button class="tc-btn jump" data-skill="jump" aria-label="跳">跳</button>
-          <button class="tc-btn attack" data-skill="attack" aria-label="攻擊">攻</button>
+          <button class="tc-btn staff has-icon" data-skill="staff" aria-label="金箍棒">棒</button>
+          <button class="tc-btn special has-icon" data-skill="special" aria-label="絕招">絕</button>
+          <button class="tc-btn dodge has-icon" data-skill="dodge" aria-label="閃避">閃</button>
+          <button class="tc-btn jump has-icon" data-skill="jump" aria-label="跳">跳</button>
+          <button class="tc-btn attack has-icon" data-skill="attack" aria-label="攻擊">攻</button>
         </div>
       </div>
     </section>

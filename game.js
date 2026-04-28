@@ -122,6 +122,7 @@ const LEVELS = [
     width: 2140,
     bg: "assets/levels/04-flaming-mountain.png",
     atlas: "assets/enemies/04-fire-enemies.png",
+    groundY: 252,
     colors: { main: "#d84a36", accent: "#ff8b2f", hazard: "#ff5c26" },
     mobs: [
       { name: "火蜥", row: 0, hp: 5, speed: 54, damage: 10, reach: 38, pattern: "flame", scale: .82, sp: 12 },
@@ -147,7 +148,52 @@ const LEVELS = [
 LEVELS.forEach((level) => {
   level.bgImage = loadImage(level.bg);
   level.enemyAtlas = loadImage(level.atlas);
+  level.cellOffsets = null;
+  const tryCompute = () => {
+    if (level.enemyAtlas.complete && level.enemyAtlas.naturalWidth && !level.cellOffsets) {
+      level.cellOffsets = computeCellOffsets(level.enemyAtlas);
+    }
+  };
+  level.enemyAtlas.addEventListener("load", tryCompute);
+  tryCompute();
 });
+
+function computeCellOffsets(img) {
+  const off = document.createElement("canvas");
+  off.width = img.naturalWidth;
+  off.height = img.naturalHeight;
+  const octx = off.getContext("2d");
+  octx.drawImage(img, 0, 0);
+  let data;
+  try {
+    data = octx.getImageData(0, 0, img.naturalWidth, img.naturalHeight).data;
+  } catch (e) {
+    return null;
+  }
+  const aw = img.naturalWidth;
+  const rows = Math.floor(img.naturalHeight / ENEMY_CELL_H);
+  const cols = Math.floor(aw / ENEMY_CELL_W);
+  const offsets = [];
+  for (let r = 0; r < rows; r++) {
+    offsets[r] = [];
+    for (let c = 0; c < cols; c++) {
+      let minX = ENEMY_CELL_W, maxX = -1;
+      const cellL = c * ENEMY_CELL_W;
+      const cellT = r * ENEMY_CELL_H;
+      for (let y = 0; y < ENEMY_CELL_H; y++) {
+        const rowBase = (cellT + y) * aw + cellL;
+        for (let x = 0; x < ENEMY_CELL_W; x++) {
+          if (data[(rowBase + x) * 4 + 3] > 16) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+          }
+        }
+      }
+      offsets[r][c] = (maxX < 0) ? 0 : (ENEMY_CELL_W / 2 - (minX + maxX) / 2);
+    }
+  }
+  return offsets;
+}
 
 const SKILL_DEFS = {
   basic: {
@@ -1084,7 +1130,8 @@ function render() {
   if (state.shake > 0) ctx.translate(Math.round(rnd(-5, 5) * state.shake * 4), Math.round(rnd(-4, 4) * state.shake * 4));
   drawBackground();
   ctx.save();
-  ctx.translate(-Math.round(state.cameraX), 0);
+  const groundOffset = (currentLevel().groundY ?? GROUND_Y) - GROUND_Y;
+  ctx.translate(-Math.round(state.cameraX), groundOffset);
   drawWorld();
   ctx.restore();
   drawHud();
@@ -1109,10 +1156,11 @@ function drawBackground() {
   }
   ctx.fillStyle = "rgba(4, 9, 13, .16)";
   ctx.fillRect(0, 0, W, H);
+  const groundY = currentLevel().groundY ?? GROUND_Y;
   ctx.fillStyle = "rgba(246, 231, 183, .24)";
-  ctx.fillRect(0, GROUND_Y + 1, W, 2);
+  ctx.fillRect(0, groundY + 1, W, 2);
   ctx.fillStyle = "rgba(0, 0, 0, .2)";
-  ctx.fillRect(0, GROUND_Y + 6, W, H - GROUND_Y);
+  ctx.fillRect(0, groundY + 6, W, H - groundY);
 }
 
 function drawWorld() {
@@ -1254,7 +1302,9 @@ function drawEnemy(enemy) {
   ctx.scale(enemy.facing, 1);
   ctx.globalAlpha = enemy.action === "dead" ? clamp(enemy.deadTime / (enemy.boss ? 1.1 : .55), 0, 1) : 1;
   if (atlas.complete && atlas.naturalWidth) {
-    ctx.drawImage(atlas, sx, sy, ENEMY_CELL_W, ENEMY_CELL_H, -dw / 2, -dh, dw, dh);
+    const cellShift = (level.cellOffsets && level.cellOffsets[enemy.row] && level.cellOffsets[enemy.row][col]) || 0;
+    const dxOffset = cellShift * (dw / ENEMY_CELL_W);
+    ctx.drawImage(atlas, sx, sy, ENEMY_CELL_W, ENEMY_CELL_H, -dw / 2 + dxOffset, -dh, dw, dh);
   } else {
     px(-22, -28, 44, 24, level.colors.main);
   }

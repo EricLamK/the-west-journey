@@ -1582,6 +1582,15 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (state.devMode && state.running && ["1", "2", "3", "4", "5"].includes(key)) {
+    const target = Number(key) - 1;
+    if (target >= 0 && target < LEVELS.length) {
+      setupLevel(target);
+      showNotice(`DEV · 跳到 ${LEVELS[target].name}`);
+    }
+    return;
+  }
+
   if (!keys.has(key)) pressed.add(key);
   keys.add(key);
   if (!state.running && (key === "r" || key === "enter")) resetGame();
@@ -1625,7 +1634,7 @@ if (devBtn) {
     if (input === DEV_PASSWORD) {
       state.devMode = true;
       devBtn.classList.add("active");
-      devBtn.textContent = "DEV ON · Q 回血";
+      devBtn.textContent = "DEV ON · Q回血 · 1-5跳關";
     } else {
       window.alert("密碼錯誤");
     }

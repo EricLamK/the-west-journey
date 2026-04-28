@@ -5,6 +5,8 @@ sprite_work/
 pansi-*.png
 screenshots/
 assets/enemies/_originals/
+assets/enemies/_inspect/
 l*-*.png
+!assets/enemies/_canonical/L*-r*.png
 __pycache__/
 *.pyc

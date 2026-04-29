@@ -383,10 +383,17 @@ def regenerate_atlas(level_tag: str, src_filename: str, level_color: tuple[int, 
     out = Image.new("RGBA", (CELL_W * COLS, CELL_H * ROWS), (0, 0, 0, 0))
 
     for row in range(ROWS):
-        canonical = make_canonical(level_tag, src, row)
-        # Save canonical for inspection.
-        CANONICAL.mkdir(exist_ok=True, parents=True)
-        canonical.save(CANONICAL / f"{level_tag}-r{row}.png")
+        # Reuse hand-tuned canonical if present (e.g. AI-extended full-body sprites);
+        # only re-extract from the original atlas otherwise.
+        cached = CANONICAL / f"{level_tag}-r{row}.png"
+        if cached.exists():
+            canonical = trim_bbox(Image.open(cached).convert("RGBA"))
+            print(f"  {level_tag} row{row}: using cached canonical {cached.name} "
+                  f"({canonical.size[0]}x{canonical.size[1]})")
+        else:
+            canonical = make_canonical(level_tag, src, row)
+            CANONICAL.mkdir(exist_ok=True, parents=True)
+            canonical.save(cached)
         cells = synthesize_row(canonical, level_color)
         for c, cell in enumerate(cells):
             out.paste(cell, (c * CELL_W, row * CELL_H))
